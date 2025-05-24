@@ -7,6 +7,7 @@
 import importlib.resources
 import logging
 from pathlib import Path
+import sys
 
 from pydantic import BaseModel
 from termcolor import cprint
@@ -96,9 +97,10 @@ def print_pip_install_help(config: BuildConfig):
     cprint(
         f"Please install needed dependencies using the following commands:\n\nuv pip install {' '.join(normal_deps)}",
         "yellow",
+        file=sys.stderr,
     )
     for special_dep in special_deps:
-        cprint(f"uv pip install {special_dep}", "yellow")
+        cprint(f"uv pip install {special_dep}", "yellow", file=sys.stderr)
     print()
 
 

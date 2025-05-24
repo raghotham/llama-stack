@@ -13,6 +13,7 @@ from typing import Any, Union, get_args, get_origin
 import httpx
 from pydantic import BaseModel, parse_obj_as
 from termcolor import cprint
+import sys
 
 from llama_stack.apis.version import LLAMA_STACK_API_VERSION
 from llama_stack.providers.datatypes import RemoteProviderConfig
@@ -96,7 +97,7 @@ def create_api_client_class(protocol) -> type:
                             try:
                                 data = json.loads(data)
                                 if "error" in data:
-                                    cprint(data, "red")
+                                    cprint(data, "red", file=sys.stderr)
                                     continue
 
                                 yield parse_obj_as(return_type, data)
