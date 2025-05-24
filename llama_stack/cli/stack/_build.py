@@ -19,7 +19,11 @@ import yaml
 from prompt_toolkit import prompt
 from prompt_toolkit.completion import WordCompleter
 from prompt_toolkit.validation import Validator
-from termcolor import colored, cprint
+from termcolor import colored, cprint as original_cprint
+
+def cprint(*args, **kwargs):
+    kwargs.setdefault('file', sys.stderr)
+    return original_cprint(*args, **kwargs)
 
 from llama_stack.cli.stack.utils import ImageType
 from llama_stack.cli.table import print_table
