@@ -187,7 +187,7 @@ class Llama3:
         if max_prompt_len >= params.max_seq_len:
             cprint(
                 f"Out of token budget {max_prompt_len} vs {params.max_seq_len}",
-                "red",
+                color="red",
                 file=sys.stderr,
             )
             return

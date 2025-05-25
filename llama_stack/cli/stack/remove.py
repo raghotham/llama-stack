@@ -58,7 +58,7 @@ class StackRemove(Subcommand):
         """Display available stacks in a table"""
         distributions = self._get_distribution_dirs()
         if not distributions:
-            cprint("No stacks found in ~/.llama/distributions", file=sys.stderr)
+            cprint("No stacks found in ~/.llama/distributions", color="red", file=sys.stderr)
             sys.exit(1)
 
         headers = ["Stack Name", "Path"]
@@ -71,7 +71,7 @@ class StackRemove(Subcommand):
         if args.all:
             confirm = input("Are you sure you want to delete ALL stacks? [yes-i-really-want/N] ").lower()
             if confirm != "yes-i-really-want":
-                cprint("Deletion cancelled.", color="red", file=sys.stderr)
+                cprint("Deletion cancelled.", color="green", file=sys.stderr)
                 return
 
             for name, path in distributions.items():
@@ -79,7 +79,11 @@ class StackRemove(Subcommand):
                     shutil.rmtree(path)
                     cprint(f"Deleted stack: {name}", color="green", file=sys.stderr)
                 except Exception as e:
-                    cprint(f"Failed to delete stack {name}: {e}", color="red", file=sys.stderr)
+                    cprint(
+                        f"Failed to delete stack {name}: {e}",
+                        color="red",
+                        file=sys.stderr,
+                    )
                     sys.exit(1)
 
         if not args.name:

@@ -211,10 +211,10 @@ class AsyncLlamaStackAsLibraryClient(AsyncLlamaStackClient):
             self.endpoint_impls = None
             self.impls = await construct_stack(self.config, self.custom_provider_registry)
         except ModuleNotFoundError as _e:
-            cprint(_e.msg, "red", file=sys.stderr)
+            cprint(_e.msg, color="red", file=sys.stderr)
             cprint(
                 "Using llama-stack as a library requires installing dependencies depending on the template (providers) you choose.\n",
-                "yellow",
+                color="yellow",
                 file=sys.stderr,
             )
             if self.config_path_or_template_name.endswith(".yaml"):

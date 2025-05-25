@@ -455,8 +455,10 @@ class MetaReferenceInferenceImpl(
             for token_results in self.generator.chat_completion(request_batch):
                 first = token_results[0]
                 if not first.finished and not first.ignore_token:
-                    cprint(first.text, "cyan", end="", file=sys.stderr)
-                    cprint(f"<{first.token}>", "magenta", end="", file=sys.stderr)
+                    if os.environ.get("LLAMA_MODELS_DEBUG", "0") in ("1", "2"):
+                        cprint(first.text, color="cyan", end="", file=sys.stderr)
+                    if os.environ.get("LLAMA_MODELS_DEBUG", "0") == "2":
+                        cprint(f"<{first.token}>", color="magenta", end="", file=sys.stderr)
 
                 for result in token_results:
                     idx = result.batch_idx
@@ -517,8 +519,10 @@ class MetaReferenceInferenceImpl(
 
             for token_results in self.generator.chat_completion([request]):
                 token_result = token_results[0]
-                cprint(token_result.text, "cyan", end="", file=sys.stderr)
-                cprint(f"<{token_result.token}>", "magenta", end="", file=sys.stderr)
+                if os.environ.get("LLAMA_MODELS_DEBUG", "0") == "1":
+                    cprint(token_result.text, color="cyan", end="", file=sys.stderr)
+                if os.environ.get("LLAMA_MODELS_DEBUG", "0") == "2":
+                    cprint(f"<{token_result.token}>", color="magenta", end="", file=sys.stderr)
 
                 if token_result.token == tokenizer.eot_id:
                     stop_reason = StopReason.end_of_turn
