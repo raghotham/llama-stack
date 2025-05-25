@@ -95,6 +95,10 @@ if [[ $container_base == *"registry.access.redhat.com/ubi9"* ]]; then
 FROM $container_base
 WORKDIR /app
 
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_ROOT_USER_ACTION=ignore
+
 # We install the Python 3.11 dev headers and build tools so that any
 # C‑extension wheels (e.g. polyleven, faiss‑cpu) can compile successfully.
 
@@ -110,6 +114,10 @@ else
   add_to_container << EOF
 FROM $container_base
 WORKDIR /app
+
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_ROOT_USER_ACTION=ignore
 
 RUN apt-get update && apt-get install -y \
        iputils-ping net-tools iproute2 dnsutils telnet \
