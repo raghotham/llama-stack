@@ -427,7 +427,8 @@ def main(args: argparse.Namespace | None = None):
 
     logger.info("Run configuration:")
     safe_config = redact_sensitive_fields(config.model_dump())
-    logger.info(yaml.dump(safe_config, indent=2))
+    logger.info(yaml.dump(safe_config, indent=2, default_style=None))
+    
 
     app = FastAPI(
         lifespan=lifespan,
