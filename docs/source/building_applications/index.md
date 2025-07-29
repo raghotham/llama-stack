@@ -9,6 +9,7 @@ The best way to get started is to look at this notebook which walks through the 
 Here are some key topics that will help you build effective agents:
 
 - **[RAG (Retrieval-Augmented Generation)](rag)**: Learn how to enhance your agents with external knowledge through retrieval mechanisms.
+- **[Enhanced RAG with Reranker](rag_with_reranker)**: Improve RAG system accuracy by using reranking to better prioritize retrieved documents.
 - **[Agent](agent)**: Understand the components and design patterns of the Llama Stack agent framework.
 - **[Agent Execution Loop](agent_execution_loop)**: Understand how agents process information, make decisions, and execute actions in a continuous loop.
 - **[Agents vs Responses API](responses_vs_agents)**: Learn the differences between the Agents API and Responses API, and when to use each one.
@@ -22,6 +23,7 @@ Here are some key topics that will help you build effective agents:
 :maxdepth: 1
 
 rag
+rag_with_reranker
 agent
 agent_execution_loop
 responses_vs_agents

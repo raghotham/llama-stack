@@ -3219,6 +3219,35 @@ paths:
             schema:
               $ref: '#/components/schemas/QueryTracesRequest'
         required: true
+  /v1/models/reranking:
+    post:
+      responses:
+        '200':
+          description: A Model with type 'reranking'.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Model'
+        '400':
+          $ref: '#/components/responses/BadRequest400'
+        '429':
+          $ref: >-
+            #/components/responses/TooManyRequests429
+        '500':
+          $ref: >-
+            #/components/responses/InternalServerError500
+        default:
+          $ref: '#/components/responses/DefaultError'
+      tags:
+        - Models
+      description: Register a reranking model.
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRerankingModelRequest'
+        required: true
   /v1/agents/{agent_id}/session/{session_id}/turn/{turn_id}/resume:
     post:
       responses:
@@ -3484,6 +3513,32 @@ paths:
             schema:
               $ref: '#/components/schemas/SyntheticDataGenerateRequest'
         required: true
+  /v1/models/reranking/{model_id}:
+    delete:
+      responses:
+        '200':
+          description: OK
+        '400':
+          $ref: '#/components/responses/BadRequest400'
+        '429':
+          $ref: >-
+            #/components/responses/TooManyRequests429
+        '500':
+          $ref: >-
+            #/components/responses/InternalServerError500
+        default:
+          $ref: '#/components/responses/DefaultError'
+      tags:
+        - Models
+      description: Unregister a reranking model.
+      parameters:
+        - name: model_id
+          in: path
+          description: >-
+            The identifier of the reranking model to unregister.
+          required: true
+          schema:
+            type: string
   /v1/version:
     get:
       responses:
@@ -7430,6 +7485,7 @@ components:
       enum:
         - llm
         - embedding
+        - reranking
       title: ModelType
     AgentTurnInputType:
       type: object
@@ -10863,6 +10919,36 @@ components:
       required:
         - model_id
       title: RegisterModelRequest
+    RegisterRerankingModelRequest:
+      type: object
+      properties:
+        model_id:
+          type: string
+          description: >-
+            The identifier of the reranking model to register.
+        provider_model_id:
+          type: string
+          description: >-
+            The identifier of the model in the provider.
+        provider_id:
+          type: string
+          description: The identifier of the provider.
+        metadata:
+          type: object
+          additionalProperties:
+            oneOf:
+              - type: 'null'
+              - type: boolean
+              - type: number
+              - type: string
+              - type: array
+              - type: object
+          description: >-
+            Any additional metadata for this reranking model.
+      additionalProperties: false
+      required:
+        - model_id
+      title: RegisterRerankingModelRequest
     RegisterScoringFunctionRequest:
       type: object
       properties:

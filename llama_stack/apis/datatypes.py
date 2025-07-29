@@ -91,6 +91,7 @@ class Api(Enum, metaclass=DynamicApiMeta):
     eval = "eval"
     post_training = "post_training"
     tool_runtime = "tool_runtime"
+    reranker = "reranker"
 
     telemetry = "telemetry"
 

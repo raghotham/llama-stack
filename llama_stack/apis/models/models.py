@@ -25,6 +25,7 @@ class CommonModelFields(BaseModel):
 class ModelType(StrEnum):
     llm = "llm"
     embedding = "embedding"
+    reranking = "reranking"
 
 
 @json_schema_type
@@ -143,5 +144,34 @@ class Models(Protocol):
         """Unregister a model.
 
         :param model_id: The identifier of the model to unregister.
+        """
+        ...
+
+    @webmethod(route="/models/reranking", method="POST")
+    async def register_reranking_model(
+        self,
+        model_id: str,
+        provider_model_id: str | None = None,
+        provider_id: str | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> Model:
+        """Register a reranking model.
+
+        :param model_id: The identifier of the reranking model to register.
+        :param provider_model_id: The identifier of the model in the provider.
+        :param provider_id: The identifier of the provider.
+        :param metadata: Any additional metadata for this reranking model.
+        :returns: A Model with type 'reranking'.
+        """
+        ...
+
+    @webmethod(route="/models/reranking/{model_id:path}", method="DELETE")
+    async def unregister_reranking_model(
+        self,
+        model_id: str,
+    ) -> None:
+        """Unregister a reranking model.
+
+        :param model_id: The identifier of the reranking model to unregister.
         """
         ...

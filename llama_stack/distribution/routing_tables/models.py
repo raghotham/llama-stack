@@ -114,6 +114,31 @@ class ModelsRoutingTable(CommonRoutingTableImpl, Models):
             raise ValueError(f"Model {model_id} not found")
         await self.unregister_object(existing_model)
 
+    async def register_reranking_model(
+        self,
+        model_id: str,
+        provider_model_id: str | None = None,
+        provider_id: str | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> Model:
+        """Register a reranking model by calling the base register_model with reranking type."""
+        return await self.register_model(
+            model_id=model_id,
+            provider_model_id=provider_model_id,
+            provider_id=provider_id,
+            metadata=metadata,
+            model_type=ModelType.reranking,
+        )
+
+    async def unregister_reranking_model(self, model_id: str) -> None:
+        """Unregister a reranking model."""
+        existing_model = await self.get_model(model_id)
+        if existing_model is None:
+            raise ValueError(f"Reranking model {model_id} not found")
+        if existing_model.model_type != ModelType.reranking:
+            raise ValueError(f"Model {model_id} is not a reranking model")
+        await self.unregister_object(existing_model)
+
     async def update_registered_models(
         self,
         provider_id: str,

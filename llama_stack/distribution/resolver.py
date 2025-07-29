@@ -19,6 +19,7 @@ from llama_stack.apis.inspect import Inspect
 from llama_stack.apis.models import Models
 from llama_stack.apis.post_training import PostTraining
 from llama_stack.apis.providers import Providers as ProvidersAPI
+from llama_stack.apis.reranker import Reranker
 from llama_stack.apis.safety import Safety
 from llama_stack.apis.scoring import Scoring
 from llama_stack.apis.scoring_functions import ScoringFunctions
@@ -91,6 +92,7 @@ def api_protocol_map(external_apis: dict[Api, ExternalApiSpec] | None = None) ->
         Api.tool_groups: ToolGroups,
         Api.tool_runtime: ToolRuntime,
         Api.files: Files,
+        Api.reranker: Reranker,
     }
 
     if external_apis:
