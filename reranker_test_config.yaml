@@ -1,0 +1,35 @@
+version: 2
+image_name: reranker-test
+apis:
+- models
+- reranker
+- inference
+providers:
+  inference:
+  - provider_id: ollama
+    provider_type: remote::ollama
+    config:
+      url: http://localhost:11434
+  reranker:
+  - provider_id: cohere
+    provider_type: remote::cohere
+    config:
+      api_key: ${env.COHERE_API_KEY:=fake_key}
+  - provider_id: voyage
+    provider_type: remote::voyage
+    config:
+      api_key: ${env.VOYAGE_API_KEY:=fake_key}
+  - provider_id: nvidia
+    provider_type: remote::nvidia
+    config:
+      api_key: ${env.NVIDIA_API_KEY:=fake_key}
+metadata_store:
+  type: file
+  file_path: /tmp/reranker_test_metadata.db
+models:
+- model_id: llama3.2
+  provider_id: ollama
+  model_type: llm
+  metadata: {}
+server:
+  port: 5001

@@ -1,0 +1,73 @@
+built_at: '2025-07-29T04:14:22.605000'
+image_type: venv
+distribution_spec:
+  description: Test configuration for reranking integration
+  providers:
+    inference:
+      - provider_id: ollama
+        config:
+          url: http://localhost:11434
+        provider_type: remote::ollama
+    models:
+      - provider_id: ollama
+        config:
+          url: http://localhost:11434
+        provider_type: remote::ollama
+    memory:
+      - provider_id: meta-reference-memory
+        config: {}
+        provider_type: inline::meta-reference
+    safety:
+      - provider_id: meta-reference-safety
+        config: {}
+        provider_type: inline::meta-reference
+    agents:
+      - provider_id: meta-reference-agents
+        config: {}
+        provider_type: inline::meta-reference
+    telemetry:
+      - provider_id: meta-reference-telemetry
+        config: {}
+        provider_type: inline::meta-reference
+    reranker:
+      - provider_id: cohere
+        config:
+          api_key: ${env.COHERE_API_KEY:}
+        provider_type: remote::cohere
+      - provider_id: voyage
+        config:
+          api_key: ${env.VOYAGE_API_KEY:}
+        provider_type: remote::voyage
+      - provider_id: nvidia
+        config:
+          api_key: ${env.NVIDIA_API_KEY:}
+        provider_type: remote::nvidia
+  routing_table:
+    inference:
+      routing_map: {}
+    memory:
+      routing_map: {}
+    safety:
+      routing_map: {}
+    agents:
+      routing_map: {}
+    telemetry:
+      routing_map: {}
+    reranker:
+      routing_map: {}
+    models:
+      routing_map: {}
+  model_parallel_dimensions: {}
+apis:
+  - inference
+  - memory
+  - safety
+  - agents
+  - telemetry
+  - reranker
+  - models
+metadata:
+  conda_env: null
+  run_config_path: /Users/raghu/dev/llama-stack/test_config.yaml
+  image_name: /tmp/test_stack
+  venv_path: /tmp/test_stack
