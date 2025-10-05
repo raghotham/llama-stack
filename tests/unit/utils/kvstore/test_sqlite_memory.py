@@ -4,7 +4,6 @@
 # This source code is licensed under the terms described in the LICENSE file in
 # the root directory of this source tree.
 
-import pytest
 
 from llama_stack.providers.utils.kvstore.sqlite.config import SqliteKVStoreConfig
 from llama_stack.providers.utils.kvstore.sqlite.sqlite import SqliteKVStoreImpl
