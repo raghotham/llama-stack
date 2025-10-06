@@ -5,7 +5,7 @@
 # the root directory of this source tree.
 
 
-from llama_stack.providers.utils.kvstore.sqlite.config import SqliteKVStoreConfig
+from llama_stack.providers.utils.kvstore.config import SqliteKVStoreConfig
 from llama_stack.providers.utils.kvstore.sqlite.sqlite import SqliteKVStoreImpl
 
 
