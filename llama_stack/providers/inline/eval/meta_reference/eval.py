@@ -64,7 +64,8 @@ class MetaReferenceEvalImpl(
             benchmark = Benchmark.model_validate_json(benchmark)
             self.benchmarks[benchmark.identifier] = benchmark
 
-    async def shutdown(self) -> None: ...
+    async def shutdown(self) -> None:
+        await self.kvstore.close()
 
     async def register_benchmark(self, task_def: Benchmark) -> None:
         # Store in kvstore

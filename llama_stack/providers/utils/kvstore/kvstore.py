@@ -43,6 +43,10 @@ class InmemoryKVStoreImpl(KVStore):
     async def delete(self, key: str) -> None:
         del self._store[key]
 
+    async def close(self) -> None:
+        """No-op for in-memory store."""
+        pass
+
 
 async def kvstore_impl(config: KVStoreConfig) -> KVStore:
     if config.type == KVStoreType.redis.value:

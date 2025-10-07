@@ -18,6 +18,7 @@ async def sqlite_kvstore(tmp_path):
     kvstore = SqliteKVStoreImpl(kvstore_config)
     await kvstore.initialize()
     yield kvstore
+    await kvstore.close()
 
 
 @pytest.fixture(scope="function")
