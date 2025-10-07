@@ -56,17 +56,22 @@ class SqliteKVStoreImpl(KVStore):
             await self._conn.close()
             self._conn = None
 
+    @property
+    def conn(self) -> aiosqlite.Connection:
+        """Get the connection, raising an error if not initialized."""
+        if self._conn is None:
+            raise RuntimeError("Connection not initialized. Call initialize() first.")
+        return self._conn
+
     async def set(self, key: str, value: str, expiration: datetime | None = None) -> None:
-        assert self._conn is not None, "Connection not initialized. Call initialize() first."
-        await self._conn.execute(
+        await self.conn.execute(
             f"INSERT OR REPLACE INTO {self.table_name} (key, value, expiration) VALUES (?, ?, ?)",
             (key, value, expiration),
         )
-        await self._conn.commit()
+        await self.conn.commit()
 
     async def get(self, key: str) -> str | None:
-        assert self._conn is not None, "Connection not initialized. Call initialize() first."
-        async with self._conn.execute(
+        async with self.conn.execute(
             f"SELECT value, expiration FROM {self.table_name} WHERE key = ?", (key,)
         ) as cursor:
             row = await cursor.fetchone()
@@ -79,13 +84,11 @@ class SqliteKVStoreImpl(KVStore):
             return value
 
     async def delete(self, key: str) -> None:
-        assert self._conn is not None, "Connection not initialized. Call initialize() first."
-        await self._conn.execute(f"DELETE FROM {self.table_name} WHERE key = ?", (key,))
-        await self._conn.commit()
+        await self.conn.execute(f"DELETE FROM {self.table_name} WHERE key = ?", (key,))
+        await self.conn.commit()
 
     async def values_in_range(self, start_key: str, end_key: str) -> list[str]:
-        assert self._conn is not None, "Connection not initialized. Call initialize() first."
-        async with self._conn.execute(
+        async with self.conn.execute(
             f"SELECT key, value, expiration FROM {self.table_name} WHERE key >= ? AND key <= ?",
             (start_key, end_key),
         ) as cursor:
@@ -97,8 +100,7 @@ class SqliteKVStoreImpl(KVStore):
 
     async def keys_in_range(self, start_key: str, end_key: str) -> list[str]:
         """Get all keys in the given range."""
-        assert self._conn is not None, "Connection not initialized. Call initialize() first."
-        cursor = await self._conn.execute(
+        cursor = await self.conn.execute(
             f"SELECT key FROM {self.table_name} WHERE key >= ? AND key <= ?",
             (start_key, end_key),
         )
