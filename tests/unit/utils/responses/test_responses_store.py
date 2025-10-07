@@ -98,6 +98,8 @@ async def test_responses_store_pagination_basic():
         assert result3.data[0].id == "zebra-resp"
         assert result3.has_more is False
 
+        await store.sql_store.close()
+
 
 async def test_responses_store_pagination_ascending():
     """Test pagination with ascending order."""
@@ -135,6 +137,8 @@ async def test_responses_store_pagination_ascending():
         assert len(result2.data) == 1
         assert result2.data[0].id == "charlie-resp"
         assert result2.has_more is True
+
+        await store.sql_store.close()
 
 
 async def test_responses_store_pagination_with_model_filter():
@@ -177,6 +181,8 @@ async def test_responses_store_pagination_with_model_filter():
         assert result2.data[0].model == "model-a"
         assert result2.has_more is False
 
+        await store.sql_store.close()
+
 
 async def test_responses_store_pagination_invalid_after():
     """Test error handling for invalid 'after' parameter."""
@@ -188,6 +194,8 @@ async def test_responses_store_pagination_invalid_after():
         # Try to paginate with non-existent ID
         with pytest.raises(ValueError, match="Record with id.*'non-existent' not found in table 'openai_responses'"):
             await store.list_responses(after="non-existent", limit=2)
+
+        await store.sql_store.close()
 
 
 async def test_responses_store_pagination_no_limit():
@@ -221,6 +229,8 @@ async def test_responses_store_pagination_no_limit():
         assert result.data[1].id == "omega-resp"
         assert result.has_more is False
 
+        await store.sql_store.close()
+
 
 async def test_responses_store_get_response_object():
     """Test retrieving a single response object."""
@@ -248,6 +258,8 @@ async def test_responses_store_get_response_object():
         # Test error for non-existent response
         with pytest.raises(ValueError, match="Response with id non-existent not found"):
             await store.get_response_object("non-existent")
+
+        await store.sql_store.close()
 
 
 async def test_responses_store_input_items_pagination():
@@ -330,6 +342,8 @@ async def test_responses_store_input_items_pagination():
         with pytest.raises(ValueError, match="Cannot specify both 'before' and 'after' parameters"):
             await store.list_response_input_items("test-resp", before="some-id", after="other-id")
 
+        await store.sql_store.close()
+
 
 async def test_responses_store_input_items_before_pagination():
     """Test before pagination functionality for input items."""
@@ -390,3 +404,5 @@ async def test_responses_store_input_items_before_pagination():
             ValueError, match="Input item with id 'non-existent' not found for response 'test-resp-before'"
         ):
             await store.list_response_input_items("test-resp-before", before="non-existent")
+
+        await store.sql_store.close()

@@ -64,6 +64,9 @@ async def test_sqlite_sqlstore():
         assert result.data == [{"id": 12, "name": "test12"}]
         assert result.has_more is False
 
+        # cleanup
+        await sqlstore.close()
+
 
 async def test_sqlstore_pagination_basic():
     """Test basic pagination functionality at the SQL store level."""
@@ -128,6 +131,8 @@ async def test_sqlstore_pagination_basic():
         assert result3.data[0]["id"] == "zebra"
         assert result3.has_more is False
 
+        await store.close()
+
 
 async def test_sqlstore_pagination_with_filter():
     """Test pagination with WHERE conditions."""
@@ -180,6 +185,8 @@ async def test_sqlstore_pagination_with_filter():
         assert result2.data[0]["id"] == "xyz"
         assert result2.has_more is False
 
+        await store.close()
+
 
 async def test_sqlstore_pagination_ascending_order():
     """Test pagination with ascending order."""
@@ -228,6 +235,8 @@ async def test_sqlstore_pagination_ascending_order():
         assert result2.data[0]["id"] == "alpha"
         assert result2.has_more is True
 
+        await store.close()
+
 
 async def test_sqlstore_pagination_multi_column_ordering_error():
     """Test that multi-column ordering raises an error when using cursor pagination."""
@@ -265,6 +274,8 @@ async def test_sqlstore_pagination_multi_column_ordering_error():
         assert len(result.data) == 1
         assert result.data[0]["id"] == "task1"
 
+        await store.close()
+
 
 async def test_sqlstore_pagination_cursor_requires_order_by():
     """Test that cursor pagination requires order_by parameter."""
@@ -281,6 +292,8 @@ async def test_sqlstore_pagination_cursor_requires_order_by():
                 table="test_records",
                 cursor=("id", "task1"),
             )
+
+        await store.close()
 
 
 async def test_sqlstore_pagination_error_handling():
@@ -414,6 +427,8 @@ async def test_where_operator_edge_cases():
         with pytest.raises(ValueError, match="Unsupported operator"):
             await store.fetch_all("events", where={"ts": {"!=": base}})
 
+        await store.close()
+
 
 async def test_sqlstore_pagination_custom_key_column():
     """Test pagination with custom primary key column (not 'id')."""
@@ -463,3 +478,5 @@ async def test_sqlstore_pagination_custom_key_column():
         assert len(result2.data) == 1
         assert result2.data[0]["uuid"] == "uuid-alpha"
         assert result2.has_more is False
+
+        await store.close()

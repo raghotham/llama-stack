@@ -77,6 +77,8 @@ async def test_authorized_fetch_with_where_sql_access_control(mock_get_authentic
         assert row is not None
         assert row["title"] == "User Document"
 
+        await base_sqlstore.close()
+
 
 @patch("llama_stack.providers.utils.sqlstore.authorized_sqlstore.get_authenticated_user")
 async def test_sql_policy_consistency(mock_get_authenticated_user):
@@ -163,6 +165,8 @@ async def test_sql_policy_consistency(mock_get_authenticated_user):
                 f"Difference: SQL only: {sql_ids - policy_ids}, Policy only: {policy_ids - sql_ids}"
             )
 
+        await base_sqlstore.close()
+
 
 @patch("llama_stack.providers.utils.sqlstore.authorized_sqlstore.get_authenticated_user")
 async def test_authorized_store_user_attribute_capture(mock_get_authenticated_user):
@@ -211,3 +215,5 @@ async def test_authorized_store_user_attribute_capture(mock_get_authenticated_us
         # Third item should have null attributes (no authenticated user)
         assert result.data[2]["id"] == "item3"
         assert result.data[2]["access_attributes"] is None
+
+        await base_sqlstore.close()

@@ -181,7 +181,8 @@ class S3FilesImpl(Files):
         )
 
     async def shutdown(self) -> None:
-        pass
+        if self._sql_store:
+            await self._sql_store.close()
 
     @property
     def client(self) -> boto3.client:

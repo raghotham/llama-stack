@@ -43,6 +43,7 @@ async def files_provider(tmp_path):
     provider = LocalfsFilesImpl(config, default_policy())
     await provider.initialize()
     yield provider
+    await provider.shutdown()
 
 
 @pytest.fixture

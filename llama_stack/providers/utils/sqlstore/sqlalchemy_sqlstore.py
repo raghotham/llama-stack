@@ -311,3 +311,11 @@ class SqlAlchemySqlStoreImpl(SqlStore):
             # The table creation will handle adding the column
             logger.error(f"Error adding column {column_name} to table {table}: {e}")
             pass
+
+    async def close(self) -> None:
+        """Close the database engine and all connections."""
+        if hasattr(self, "async_session"):
+            # Get the engine from the session maker
+            engine = self.async_session.kw.get("bind")
+            if engine:
+                await engine.dispose()

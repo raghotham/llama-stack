@@ -74,19 +74,21 @@ class InferenceStore:
             logger.info("Write queue disabled for SQLite to avoid concurrency issues")
 
     async def shutdown(self) -> None:
-        if not self._worker_tasks:
-            return
-        if self._queue is not None:
-            await self._queue.join()
-        for t in self._worker_tasks:
-            if not t.done():
-                t.cancel()
-        for t in self._worker_tasks:
-            try:
-                await t
-            except asyncio.CancelledError:
-                pass
-        self._worker_tasks.clear()
+        if self._worker_tasks:
+            if self._queue is not None:
+                await self._queue.join()
+            for t in self._worker_tasks:
+                if not t.done():
+                    t.cancel()
+            for t in self._worker_tasks:
+                try:
+                    await t
+                except asyncio.CancelledError:
+                    pass
+            self._worker_tasks.clear()
+
+        if self.sql_store:
+            await self.sql_store.close()
 
     async def flush(self) -> None:
         """Wait for all queued writes to complete. Useful for testing."""

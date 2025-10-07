@@ -315,6 +315,7 @@ class MetaReferenceAgentsImpl(Agents):
 
     async def shutdown(self) -> None:
         await self.persistence_store.close()
+        await self.responses_store.shutdown()
 
     # OpenAI responses
     async def get_openai_response(

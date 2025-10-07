@@ -52,17 +52,21 @@ def auth_app(tmp_path, request):
     db_path = tmp_path / f"quota_{request.node.name}.db"
     quota = build_quota_config(db_path)
 
-    app = InjectClientIDMiddleware(
-        QuotaMiddleware(
-            inner_app,
-            kv_config=quota.kvstore,
-            anonymous_max_requests=quota.anonymous_max_requests,
-            authenticated_max_requests=quota.authenticated_max_requests,
-            window_seconds=86400,
-        ),
-        client_id=f"client_{request.node.name}",
+    quota_middleware = QuotaMiddleware(
+        inner_app,
+        kv_config=quota.kvstore,
+        anonymous_max_requests=quota.anonymous_max_requests,
+        authenticated_max_requests=quota.authenticated_max_requests,
+        window_seconds=86400,
     )
-    return app
+    app = InjectClientIDMiddleware(quota_middleware, client_id=f"client_{request.node.name}")
+
+    yield app
+
+    # Cleanup
+    import asyncio
+
+    asyncio.run(quota_middleware.close())
 
 
 def test_authenticated_quota_allows_up_to_limit(auth_app):
@@ -81,6 +85,8 @@ def test_authenticated_quota_blocks_after_limit(auth_app):
 
 
 def test_anonymous_quota_allows_up_to_limit(tmp_path, request):
+    import asyncio
+
     inner_app = FastAPI()
 
     @inner_app.get("/test")
@@ -101,8 +107,12 @@ def test_anonymous_quota_allows_up_to_limit(tmp_path, request):
     client = TestClient(app)
     assert client.get("/test").status_code == 200
 
+    asyncio.run(app.close())
+
 
 def test_anonymous_quota_blocks_after_limit(tmp_path, request):
+    import asyncio
+
     inner_app = FastAPI()
 
     @inner_app.get("/test")
@@ -125,3 +135,5 @@ def test_anonymous_quota_blocks_after_limit(tmp_path, request):
     resp = client.get("/test")
     assert resp.status_code == 429
     assert resp.json()["error"]["message"] == "Quota exceeded"
+
+    asyncio.run(app.close())

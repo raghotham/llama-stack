@@ -89,6 +89,8 @@ async def test_inference_store_pagination_basic():
         assert result3.data[0].id == "zebra-task"
         assert result3.has_more is False
 
+        await store.sql_store.close()
+
 
 async def test_inference_store_pagination_ascending():
     """Test pagination with ascending order."""
@@ -125,6 +127,8 @@ async def test_inference_store_pagination_ascending():
         assert len(result2.data) == 1
         assert result2.data[0].id == "charlie-task"
         assert result2.has_more is True
+
+        await store.sql_store.close()
 
 
 async def test_inference_store_pagination_with_model_filter():
@@ -166,6 +170,8 @@ async def test_inference_store_pagination_with_model_filter():
         assert result2.data[0].model == "model-a"
         assert result2.has_more is False
 
+        await store.sql_store.close()
+
 
 async def test_inference_store_pagination_invalid_after():
     """Test error handling for invalid 'after' parameter."""
@@ -177,6 +183,8 @@ async def test_inference_store_pagination_invalid_after():
         # Try to paginate with non-existent ID
         with pytest.raises(ValueError, match="Record with id='non-existent' not found in table 'chat_completions'"):
             await store.list_chat_completions(after="non-existent", limit=2)
+
+        await store.sql_store.close()
 
 
 async def test_inference_store_pagination_no_limit():
@@ -208,3 +216,5 @@ async def test_inference_store_pagination_no_limit():
         assert result.data[0].id == "beta-second"  # Most recent first
         assert result.data[1].id == "omega-first"
         assert result.has_more is False
+
+        await store.sql_store.close()
