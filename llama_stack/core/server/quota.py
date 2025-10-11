@@ -108,8 +108,3 @@ class QuotaMiddleware:
         )
         body = json.dumps({"error": {"message": message}}).encode()
         await send({"type": "http.response.body", "body": body})
-
-    async def close(self):
-        """Close the KV store connection."""
-        if self.kv is not None:
-            await self.kv.close()

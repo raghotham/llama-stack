@@ -314,8 +314,7 @@ class MetaReferenceAgentsImpl(Agents):
         return paginate_records(session_dicts, start_index, limit)
 
     async def shutdown(self) -> None:
-        await self.persistence_store.close()
-        await self.responses_store.shutdown()
+        pass
 
     # OpenAI responses
     async def get_openai_response(

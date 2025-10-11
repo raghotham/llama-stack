@@ -37,72 +37,138 @@ class SqliteKVStoreImpl(KVStore):
             if db_dir:  # Only create if there's a directory component
                 os.makedirs(db_dir, exist_ok=True)
 
-        # Create persistent connection for all databases
-        self._conn = await aiosqlite.connect(self.db_path)
-        await self._conn.execute(
-            f"""
-            CREATE TABLE IF NOT EXISTS {self.table_name} (
-                key TEXT PRIMARY KEY,
-                value TEXT,
-                expiration TIMESTAMP
+        # Only use persistent connection for in-memory databases
+        # File-based databases use connection-per-operation to avoid hangs
+        if self._is_memory_db():
+            self._conn = await aiosqlite.connect(self.db_path)
+            await self._conn.execute(
+                f"""
+                CREATE TABLE IF NOT EXISTS {self.table_name} (
+                    key TEXT PRIMARY KEY,
+                    value TEXT,
+                    expiration TIMESTAMP
+                )
+            """
             )
-        """
-        )
-        await self._conn.commit()
+            await self._conn.commit()
+        else:
+            # For file-based databases, just create the table
+            async with aiosqlite.connect(self.db_path) as db:
+                await db.execute(
+                    f"""
+                    CREATE TABLE IF NOT EXISTS {self.table_name} (
+                        key TEXT PRIMARY KEY,
+                        value TEXT,
+                        expiration TIMESTAMP
+                    )
+                """
+                )
+                await db.commit()
 
     async def close(self):
-        """Close the persistent connection."""
+        """Close the persistent connection (only for in-memory databases)."""
         if self._conn:
             await self._conn.close()
             self._conn = None
 
-    @property
-    def conn(self) -> aiosqlite.Connection:
-        """Get the connection, raising an error if not initialized."""
-        if self._conn is None:
-            raise RuntimeError("Connection not initialized. Call initialize() first.")
-        return self._conn
-
     async def set(self, key: str, value: str, expiration: datetime | None = None) -> None:
-        await self.conn.execute(
-            f"INSERT OR REPLACE INTO {self.table_name} (key, value, expiration) VALUES (?, ?, ?)",
-            (key, value, expiration),
-        )
-        await self.conn.commit()
+        if self._conn:
+            # In-memory database with persistent connection
+            await self._conn.execute(
+                f"INSERT OR REPLACE INTO {self.table_name} (key, value, expiration) VALUES (?, ?, ?)",
+                (key, value, expiration),
+            )
+            await self._conn.commit()
+        else:
+            # File-based database with connection per operation
+            async with aiosqlite.connect(self.db_path) as db:
+                await db.execute(
+                    f"INSERT OR REPLACE INTO {self.table_name} (key, value, expiration) VALUES (?, ?, ?)",
+                    (key, value, expiration),
+                )
+                await db.commit()
 
     async def get(self, key: str) -> str | None:
-        async with self.conn.execute(
-            f"SELECT value, expiration FROM {self.table_name} WHERE key = ?", (key,)
-        ) as cursor:
-            row = await cursor.fetchone()
-            if row is None:
-                return None
-            value, expiration = row
-            if not isinstance(value, str):
-                logger.warning(f"Expected string value for key {key}, got {type(value)}, returning None")
-                return None
-            return value
+        if self._conn:
+            # In-memory database with persistent connection
+            async with self._conn.execute(
+                f"SELECT value, expiration FROM {self.table_name} WHERE key = ?", (key,)
+            ) as cursor:
+                row = await cursor.fetchone()
+                if row is None:
+                    return None
+                value, expiration = row
+                if not isinstance(value, str):
+                    logger.warning(f"Expected string value for key {key}, got {type(value)}, returning None")
+                    return None
+                return value
+        else:
+            # File-based database with connection per operation
+            async with aiosqlite.connect(self.db_path) as db:
+                async with db.execute(
+                    f"SELECT value, expiration FROM {self.table_name} WHERE key = ?", (key,)
+                ) as cursor:
+                    row = await cursor.fetchone()
+                    if row is None:
+                        return None
+                    value, expiration = row
+                    if not isinstance(value, str):
+                        logger.warning(f"Expected string value for key {key}, got {type(value)}, returning None")
+                        return None
+                    return value
 
     async def delete(self, key: str) -> None:
-        await self.conn.execute(f"DELETE FROM {self.table_name} WHERE key = ?", (key,))
-        await self.conn.commit()
+        if self._conn:
+            # In-memory database with persistent connection
+            await self._conn.execute(f"DELETE FROM {self.table_name} WHERE key = ?", (key,))
+            await self._conn.commit()
+        else:
+            # File-based database with connection per operation
+            async with aiosqlite.connect(self.db_path) as db:
+                await db.execute(f"DELETE FROM {self.table_name} WHERE key = ?", (key,))
+                await db.commit()
 
     async def values_in_range(self, start_key: str, end_key: str) -> list[str]:
-        async with self.conn.execute(
-            f"SELECT key, value, expiration FROM {self.table_name} WHERE key >= ? AND key <= ?",
-            (start_key, end_key),
-        ) as cursor:
-            result = []
-            async for row in cursor:
-                _, value, _ = row
-                result.append(value)
-            return result
+        if self._conn:
+            # In-memory database with persistent connection
+            async with self._conn.execute(
+                f"SELECT key, value, expiration FROM {self.table_name} WHERE key >= ? AND key <= ?",
+                (start_key, end_key),
+            ) as cursor:
+                result = []
+                async for row in cursor:
+                    _, value, _ = row
+                    result.append(value)
+                return result
+        else:
+            # File-based database with connection per operation
+            async with aiosqlite.connect(self.db_path) as db:
+                async with db.execute(
+                    f"SELECT key, value, expiration FROM {self.table_name} WHERE key >= ? AND key <= ?",
+                    (start_key, end_key),
+                ) as cursor:
+                    result = []
+                    async for row in cursor:
+                        _, value, _ = row
+                        result.append(value)
+                    return result
 
     async def keys_in_range(self, start_key: str, end_key: str) -> list[str]:
         """Get all keys in the given range."""
-        cursor = await self.conn.execute(
-            f"SELECT key FROM {self.table_name} WHERE key >= ? AND key <= ?",
-            (start_key, end_key),
-        )
-        rows = await cursor.fetchall()
-        return [row[0] for row in rows]
+        if self._conn:
+            # In-memory database with persistent connection
+            cursor = await self._conn.execute(
+                f"SELECT key FROM {self.table_name} WHERE key >= ? AND key <= ?",
+                (start_key, end_key),
+            )
+            rows = await cursor.fetchall()
+            return [row[0] for row in rows]
+        else:
+            # File-based database with connection per operation
+            async with aiosqlite.connect(self.db_path) as db:
+                cursor = await db.execute(
+                    f"SELECT key FROM {self.table_name} WHERE key >= ? AND key <= ?",
+                    (start_key, end_key),
+                )
+                rows = await cursor.fetchall()
+                return [row[0] for row in rows]

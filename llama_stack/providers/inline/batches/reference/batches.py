@@ -129,7 +129,6 @@ class ReferenceBatchesImpl(Batches):
             # don't cancel tasks - just let them stop naturally on shutdown
             # cancelling would mark batches as "cancelled" in the database
             logger.info(f"Shutdown initiated with {len(self._processing_tasks)} active batch processing tasks")
-        await self.kvstore.close()
 
     # TODO (SECURITY): this currently works w/ configured api keys, not with x-llamastack-provider-data or with user policy restrictions
     async def create_batch(

@@ -197,10 +197,6 @@ class AuthorizedSqlStore:
         """Delete rows with automatic access control filtering."""
         await self.sql_store.delete(table, where)
 
-    async def close(self) -> None:
-        """Close the underlying SQL store connection."""
-        await self.sql_store.close()
-
     def _build_access_control_where_clause(self, policy: list[AccessRule]) -> str:
         """Build SQL WHERE clause for access control filtering.
 

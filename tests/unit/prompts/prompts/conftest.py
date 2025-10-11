@@ -28,5 +28,3 @@ async def temp_prompt_store(tmp_path_factory):
     store.kvstore = await kvstore_impl(SqliteKVStoreConfig(db_path=db_path))
 
     yield store
-
-    await store.kvstore.close()

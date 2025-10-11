@@ -62,8 +62,7 @@ class LocalfsFilesImpl(Files):
         )
 
     async def shutdown(self) -> None:
-        if self.sql_store:
-            await self.sql_store.close()
+        pass
 
     def _generate_file_id(self) -> str:
         """Generate a unique file ID for OpenAI API."""

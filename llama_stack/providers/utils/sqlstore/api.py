@@ -126,9 +126,3 @@ class SqlStore(Protocol):
         :param nullable: Whether the column should be nullable (default: True)
         """
         pass
-
-    async def close(self) -> None:
-        """
-        Close any persistent database connections.
-        """
-        pass
