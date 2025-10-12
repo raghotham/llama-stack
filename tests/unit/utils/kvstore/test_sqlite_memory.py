@@ -17,7 +17,7 @@ async def test_memory_kvstore_persistence_behavior():
     store1 = SqliteKVStoreImpl(config)
     await store1.initialize()
     await store1.set("persist_test", "should_not_persist")
-    await store1.close()
+    await store1.shutdown()
 
     # Second instance with same config
     store2 = SqliteKVStoreImpl(config)
@@ -27,4 +27,4 @@ async def test_memory_kvstore_persistence_behavior():
     result = await store2.get("persist_test")
     assert result is None
 
-    await store2.close()
+    await store2.shutdown()

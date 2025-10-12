@@ -65,7 +65,7 @@ class SqliteKVStoreImpl(KVStore):
                 )
                 await db.commit()
 
-    async def close(self):
+    async def shutdown(self):
         """Close the persistent connection (only for in-memory databases)."""
         if self._conn:
             await self._conn.close()
