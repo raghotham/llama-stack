@@ -34,6 +34,8 @@ from .utils.config import redact_sensitive_fields
 logger = get_logger(name=__name__, category="core")
 
 # Storage constants for dynamic provider connections
+# Use composite key format: provider_connections:v1::{api}::{provider_id}
+# This allows the same provider_id to be used for different APIs
 PROVIDER_CONNECTIONS_PREFIX = "provider_connections:v1::"
 
 
@@ -55,6 +57,8 @@ class ProviderImpl(Providers):
         self.config = config
         self.deps = deps
         self.kvstore = None  # KVStore for dynamic provider persistence
+        # Runtime cache uses composite key: "{api}::{provider_id}"
+        # This allows the same provider_id to be used for different APIs
         self.dynamic_providers: dict[str, ProviderConnectionInfo] = {}  # Runtime cache
         self.dynamic_provider_impls: dict[str, Any] = {}  # Initialized provider instances
 
@@ -65,36 +69,39 @@ class ProviderImpl(Providers):
 
     async def initialize(self) -> None:
         # Initialize kvstore for dynamic providers
-        # Reuse the same kvstore as the distribution registry if available
-        if hasattr(self.config.run_config, "metadata_store") and self.config.run_config.metadata_store:
-            from llama_stack.providers.utils.kvstore import kvstore_impl
+        # Use the metadata store from the new storage config structure
+        if not (self.config.run_config.storage and self.config.run_config.storage.stores.metadata):
+            raise RuntimeError(
+                "No metadata store configured in storage.stores.metadata. "
+                "Provider management requires a configured metadata store (kv_memory, kv_sqlite, etc)."
+            )
 
-            self.kvstore = await kvstore_impl(self.config.run_config.metadata_store)
-            logger.info("Initialized kvstore for dynamic provider management")
+        from llama_stack.providers.utils.kvstore import kvstore_impl
 
-            # Load existing dynamic providers from kvstore
-            await self._load_dynamic_providers()
-            logger.info(f"Loaded {len(self.dynamic_providers)} dynamic providers from kvstore")
+        self.kvstore = await kvstore_impl(self.config.run_config.storage.stores.metadata)
+        logger.info("✅ Initialized kvstore for dynamic provider management")
 
-            # Auto-instantiate connected providers on startup
-            if self.provider_registry:
-                for provider_id, conn_info in self.dynamic_providers.items():
-                    if conn_info.status == ProviderConnectionStatus.connected:
-                        try:
-                            impl = await self._instantiate_provider(conn_info)
-                            self.dynamic_provider_impls[provider_id] = impl
-                            logger.info(f"Auto-instantiated provider {provider_id} from kvstore")
-                        except Exception as e:
-                            logger.error(f"Failed to auto-instantiate provider {provider_id}: {e}")
-                            # Update status to failed
-                            conn_info.status = ProviderConnectionStatus.failed
-                            conn_info.error_message = str(e)
-                            conn_info.updated_at = datetime.now(UTC)
-                            await self._store_connection(conn_info)
-            else:
-                logger.warning("Provider registry not available, skipping auto-instantiation")
+        # Load existing dynamic providers from kvstore
+        await self._load_dynamic_providers()
+        logger.info(f"📦 Loaded {len(self.dynamic_providers)} existing dynamic providers from kvstore")
+
+        # Auto-instantiate connected providers on startup
+        if self.provider_registry:
+            for provider_id, conn_info in self.dynamic_providers.items():
+                if conn_info.status == ProviderConnectionStatus.connected:
+                    try:
+                        impl = await self._instantiate_provider(conn_info)
+                        self.dynamic_provider_impls[provider_id] = impl
+                        logger.info(f"♻️  Auto-instantiated provider {provider_id} from kvstore")
+                    except Exception as e:
+                        logger.error(f"Failed to auto-instantiate provider {provider_id}: {e}")
+                        # Update status to failed
+                        conn_info.status = ProviderConnectionStatus.failed
+                        conn_info.error_message = str(e)
+                        conn_info.updated_at = datetime.now(UTC)
+                        await self._store_connection(conn_info)
         else:
-            logger.warning("No metadata_store configured, dynamic provider management disabled")
+            logger.warning("Provider registry not available, skipping auto-instantiation")
 
     async def shutdown(self) -> None:
         logger.debug("ProviderImpl.shutdown")
@@ -245,9 +252,10 @@ class ProviderImpl(Providers):
         if not self.kvstore:
             raise RuntimeError("KVStore not initialized")
 
-        key = f"{PROVIDER_CONNECTIONS_PREFIX}{info.provider_id}"
+        # Use composite key: provider_connections:v1::{api}::{provider_id}
+        key = f"{PROVIDER_CONNECTIONS_PREFIX}{info.api}::{info.provider_id}"
         await self.kvstore.set(key, info.model_dump_json())
-        logger.debug(f"Stored provider connection: {info.provider_id}")
+        logger.debug(f"Stored provider connection: {info.api}::{info.provider_id}")
 
     async def _load_connection(self, provider_id: str) -> ProviderConnectionInfo | None:
         """Load provider connection info from kvstore.
@@ -293,8 +301,10 @@ class ProviderImpl(Providers):
         """Load dynamic providers from kvstore into runtime cache."""
         connections = await self._list_connections()
         for conn in connections:
-            self.dynamic_providers[conn.provider_id] = conn
-            logger.debug(f"Loaded dynamic provider: {conn.provider_id} (status: {conn.status})")
+            # Use composite key for runtime cache
+            cache_key = f"{conn.api}::{conn.provider_id}"
+            self.dynamic_providers[cache_key] = conn
+            logger.debug(f"Loaded dynamic provider: {cache_key} (status: {conn.status})")
 
     # Helper methods for dynamic provider management
 
@@ -384,12 +394,17 @@ class ProviderImpl(Providers):
 
         All providers are stored in kvstore and treated equally.
         """
+        logger.info(f"📝 REGISTER_PROVIDER called: provider_id={provider_id}, api={api}, type={provider_type}")
+
         if not self.kvstore:
             raise RuntimeError("Dynamic provider management is not enabled (no kvstore configured)")
 
-        # Check if provider_id already exists
-        if provider_id in self.dynamic_providers:
-            raise ValueError(f"Provider {provider_id} already exists")
+        # Use composite key to allow same provider_id for different APIs
+        cache_key = f"{api}::{provider_id}"
+
+        # Check if provider already exists for this API
+        if cache_key in self.dynamic_providers:
+            raise ValueError(f"Provider {provider_id} already exists for API {api}")
 
         # Get authenticated user as owner
         user = get_authenticated_user()
@@ -415,7 +430,8 @@ class ProviderImpl(Providers):
             # Instantiate provider if we have a provider registry
             if self.provider_registry:
                 impl = await self._instantiate_provider(conn_info)
-                self.dynamic_provider_impls[provider_id] = impl
+                # Use composite key for impl cache too
+                self.dynamic_provider_impls[cache_key] = impl
 
                 # Update status to connected after successful instantiation
                 conn_info.status = ProviderConnectionStatus.connected
@@ -434,8 +450,8 @@ class ProviderImpl(Providers):
             # Store updated status
             await self._store_connection(conn_info)
 
-            # Add to runtime cache
-            self.dynamic_providers[provider_id] = conn_info
+            # Add to runtime cache using composite key
+            self.dynamic_providers[cache_key] = conn_info
 
             return RegisterProviderResponse(provider=conn_info)
 
@@ -445,7 +461,7 @@ class ProviderImpl(Providers):
             conn_info.error_message = str(e)
             conn_info.updated_at = datetime.now(UTC)
             await self._store_connection(conn_info)
-            self.dynamic_providers[provider_id] = conn_info
+            self.dynamic_providers[cache_key] = conn_info
 
             logger.error(f"Failed to register provider {provider_id}: {e}")
             raise RuntimeError(f"Failed to register provider: {e}") from e
@@ -461,6 +477,8 @@ class ProviderImpl(Providers):
         Updates persist to kvstore and survive server restarts.
         This works for all providers (whether originally from run.yaml or API).
         """
+        logger.info(f"🔄 UPDATE_PROVIDER called: provider_id={provider_id}, has_config={config is not None}, has_attributes={attributes is not None}")
+
         if not self.kvstore:
             raise RuntimeError("Dynamic provider management is not enabled (no kvstore configured)")
 
@@ -531,6 +549,8 @@ class ProviderImpl(Providers):
         Removes the provider from kvstore and shuts down its instance.
         This works for all providers (whether originally from run.yaml or API).
         """
+        logger.info(f"🗑️  UNREGISTER_PROVIDER called: provider_id={provider_id}")
+
         if not self.kvstore:
             raise RuntimeError("Dynamic provider management is not enabled (no kvstore configured)")
 
@@ -560,6 +580,8 @@ class ProviderImpl(Providers):
 
     async def test_provider_connection(self, provider_id: str) -> TestProviderConnectionResponse:
         """Test a provider connection."""
+        logger.info(f"🔍 TEST_PROVIDER_CONNECTION called: provider_id={provider_id}")
+
         # Check if provider exists (static or dynamic)
         provider_impl = None
 
