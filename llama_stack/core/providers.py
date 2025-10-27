@@ -592,8 +592,8 @@ class ProviderImpl(Providers):
             logger.error(f"Failed to unregister provider {provider_id}: {e}")
             raise RuntimeError(f"Failed to unregister provider: {e}") from e
 
-    async def test_provider_connection(self, api: str, provider_id: str) -> TestProviderConnectionResponse:
-        """Test a provider connection."""
+    async def health(self, api: str, provider_id: str) -> TestProviderConnectionResponse:
+        """Check provider health."""
 
         # Check if provider exists (static or dynamic)
         provider_impl = None

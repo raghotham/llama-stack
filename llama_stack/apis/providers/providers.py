@@ -9,7 +9,7 @@ from typing import Any, Protocol, runtime_checkable
 from pydantic import BaseModel
 
 from llama_stack.apis.providers.connection import ProviderConnectionInfo
-from llama_stack.apis.version import LLAMA_STACK_API_V1
+from llama_stack.apis.version import LLAMA_STACK_API_V1, LLAMA_STACK_API_V1ALPHA
 from llama_stack.providers.datatypes import HealthResponse
 from llama_stack.schema_utils import json_schema_type, webmethod
 
@@ -152,7 +152,7 @@ class Providers(Protocol):
 
     # ===== Dynamic Provider Management Methods =====
 
-    @webmethod(route="/admin/providers/{api}", method="POST", level=LLAMA_STACK_API_V1)
+    @webmethod(route="/admin/providers/{api}", method="POST", level=LLAMA_STACK_API_V1ALPHA)
     async def register_provider(
         self,
         api: str,
@@ -175,7 +175,7 @@ class Providers(Protocol):
         """
         ...
 
-    @webmethod(route="/admin/providers/{api}/{provider_id}", method="PUT", level=LLAMA_STACK_API_V1)
+    @webmethod(route="/admin/providers/{api}/{provider_id}", method="PUT", level=LLAMA_STACK_API_V1ALPHA)
     async def update_provider(
         self,
         api: str,
@@ -196,7 +196,7 @@ class Providers(Protocol):
         """
         ...
 
-    @webmethod(route="/admin/providers/{api}/{provider_id}", method="DELETE", level=LLAMA_STACK_API_V1)
+    @webmethod(route="/admin/providers/{api}/{provider_id}", method="DELETE", level=LLAMA_STACK_API_V1ALPHA)
     async def unregister_provider(self, api: str, provider_id: str) -> None:
         """Unregister a dynamic provider.
 
@@ -208,14 +208,14 @@ class Providers(Protocol):
         """
         ...
 
-    @webmethod(route="/admin/providers/{api}/{provider_id}/test", method="POST", level=LLAMA_STACK_API_V1)
-    async def test_provider_connection(self, api: str, provider_id: str) -> TestProviderConnectionResponse:
-        """Test a provider connection.
+    @webmethod(route="/admin/providers/{api}/{provider_id}/health", method="GET", level=LLAMA_STACK_API_V1ALPHA)
+    async def health(self, api: str, provider_id: str) -> TestProviderConnectionResponse:
+        """Check provider health.
 
         Execute a health check on a provider to verify it is reachable and functioning.
 
         :param api: API namespace the provider implements.
-        :param provider_id: ID of the provider to test.
+        :param provider_id: ID of the provider to check.
         :returns: TestProviderConnectionResponse with health status.
         """
         ...

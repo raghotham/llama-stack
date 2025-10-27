@@ -257,7 +257,7 @@ class TestDynamicProviderManagement:
             )
 
             # Test connection
-            response = await provider_impl.test_provider_connection(api=Api.inference.value, provider_id="test-health")
+            response = await provider_impl.health(api=Api.inference.value, provider_id="test-health")
 
         # Verify response
         assert response.success is True
@@ -282,7 +282,7 @@ class TestDynamicProviderManagement:
             )
 
             # Test connection
-            response = await provider_impl.test_provider_connection(
+            response = await provider_impl.health(
                 api=Api.inference.value, provider_id="test-unhealthy"
             )
 
