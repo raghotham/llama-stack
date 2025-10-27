@@ -541,25 +541,36 @@ async def resolve_impls_via_provider_registration(
             else:
                 # Regular providers - register through ProviderImpl
                 api = Api(api_str)
-                logger.info(f"Registering {provider.provider_id} for {api.value}")
-
-                await providers_impl.register_provider(
-                    api=api.value,
-                    provider_id=provider.provider_id,
-                    provider_type=provider.spec.provider_type,
-                    config=provider.config,
-                    attributes=getattr(provider, "attributes", None),
-                )
-
-                # Get the instantiated impl from dynamic_provider_impls using composite key
                 cache_key = f"{api.value}::{provider.provider_id}"
-                impl = providers_impl.dynamic_provider_impls[cache_key]
+
+                # Check if provider already exists (loaded from kvstore during initialization)
+                if cache_key in providers_impl.dynamic_providers:
+                    logger.info(f"Provider {provider.provider_id} for {api.value} already exists, using existing instance")
+                    impl = providers_impl.dynamic_provider_impls.get(cache_key)
+                    if impl is None:
+                        # Provider exists but not instantiated, instantiate it
+                        conn_info = providers_impl.dynamic_providers[cache_key]
+                        impl = await providers_impl._instantiate_provider(conn_info)
+                        providers_impl.dynamic_provider_impls[cache_key] = impl
+                else:
+                    logger.info(f"Registering {provider.provider_id} for {api.value}")
+
+                    await providers_impl.register_provider(
+                        api=api.value,
+                        provider_id=provider.provider_id,
+                        provider_type=provider.spec.provider_type,
+                        config=provider.config,
+                        attributes=getattr(provider, "attributes", None),
+                    )
+
+                    # Get the instantiated impl from dynamic_provider_impls using composite key
+                    impl = providers_impl.dynamic_provider_impls[cache_key]
+                    logger.info(f"Successfully registered startup provider: {provider.provider_id}")
+
                 impls[api] = impl
 
                 # IMPORTANT: Update providers_impl.deps so subsequent providers can depend on this one
                 providers_impl.deps[api] = impl
-
-                logger.info(f"Successfully registered startup provider: {provider.provider_id}")
 
         except Exception as e:
             logger.error(f"Failed to handle provider {provider.provider_id}: {e}")
