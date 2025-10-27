@@ -40,7 +40,7 @@
         }
     ],
     "paths": {
-        "/v1/admin/providers": {
+        "/v1/admin/providers/{api}": {
             "post": {
                 "responses": {
                     "200": {
@@ -71,7 +71,17 @@
                 ],
                 "summary": "Register a new dynamic provider.",
                 "description": "Register a new dynamic provider.\nRegister a new provider instance at runtime. The provider will be validated,\ninstantiated, and persisted to the kvstore. Requires appropriate ABAC permissions.",
-                "parameters": [],
+                "parameters": [
+                    {
+                        "name": "api",
+                        "in": "path",
+                        "description": "API namespace this provider implements (e.g., 'inference', 'vector_io').",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
                 "requestBody": {
                     "content": {
                         "application/json": {
@@ -85,7 +95,7 @@
                 "deprecated": false
             }
         },
-        "/v1/admin/providers/{provider_id}": {
+        "/v1/admin/providers/{api}/{provider_id}": {
             "post": {
                 "responses": {
                     "200": {
@@ -115,8 +125,17 @@
                     "Providers"
                 ],
                 "summary": "Update an existing provider's configuration.",
-                "description": "Update an existing provider's configuration.\nUpdate the configuration and/or attributes of a dynamic provider. The provider\nwill be re-instantiated with the new configuration (hot-reload). Static providers\nfrom run.yaml cannot be updated.",
+                "description": "Update an existing provider's configuration.\nUpdate the configuration and/or attributes of a dynamic provider. The provider\nwill be re-instantiated with the new configuration (hot-reload).",
                 "parameters": [
+                    {
+                        "name": "api",
+                        "in": "path",
+                        "description": "API namespace the provider implements",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     {
                         "name": "provider_id",
                         "in": "path",
@@ -161,12 +180,75 @@
                     "Providers"
                 ],
                 "summary": "Unregister a dynamic provider.",
-                "description": "Unregister a dynamic provider.\nRemove a dynamic provider, shutting down its instance and removing it from\nthe kvstore. Static providers from run.yaml cannot be unregistered.",
+                "description": "Unregister a dynamic provider.\nRemove a dynamic provider, shutting down its instance and removing it from\nthe kvstore.",
                 "parameters": [
+                    {
+                        "name": "api",
+                        "in": "path",
+                        "description": "API namespace the provider implements",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     {
                         "name": "provider_id",
                         "in": "path",
                         "description": "ID of the provider to unregister.",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "deprecated": false
+            }
+        },
+        "/v1/admin/providers/{api}/{provider_id}/test": {
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "TestProviderConnectionResponse with health status.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TestProviderConnectionResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest400"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests429"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/InternalServerError500"
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/DefaultError"
+                    }
+                },
+                "tags": [
+                    "Providers"
+                ],
+                "summary": "Test a provider connection.",
+                "description": "Test a provider connection.\nExecute a health check on a provider to verify it is reachable and functioning.",
+                "parameters": [
+                    {
+                        "name": "api",
+                        "in": "path",
+                        "description": "API namespace the provider implements.",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "provider_id",
+                        "in": "path",
+                        "description": "ID of the provider to test.",
                         "required": true,
                         "schema": {
                             "type": "string"
@@ -1771,7 +1853,52 @@
                 "deprecated": false
             }
         },
-        "/v1/providers/{provider_id}": {
+        "/v1/providers/{api}": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "A ListProvidersResponse containing providers for the specified API.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ListProvidersResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest400"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests429"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/InternalServerError500"
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/DefaultError"
+                    }
+                },
+                "tags": [
+                    "Providers"
+                ],
+                "summary": "List providers for a specific API.",
+                "description": "List providers for a specific API.\nList all providers that implement a specific API.",
+                "parameters": [
+                    {
+                        "name": "api",
+                        "in": "path",
+                        "description": "The API namespace to filter by (e.g., 'inference', 'vector_io')",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "deprecated": false
+            }
+        },
+        "/v1/providers/{api}/{provider_id}": {
             "get": {
                 "responses": {
                     "200": {
@@ -1800,58 +1927,22 @@
                 "tags": [
                     "Providers"
                 ],
-                "summary": "Get provider.",
-                "description": "Get provider.\nGet detailed information about a specific provider.",
+                "summary": "Get provider for specific API.",
+                "description": "Get provider for specific API.\nGet detailed information about a specific provider for a specific API.",
                 "parameters": [
                     {
-                        "name": "provider_id",
+                        "name": "api",
                         "in": "path",
-                        "description": "The ID of the provider to inspect.",
+                        "description": "The API namespace.",
                         "required": true,
                         "schema": {
                             "type": "string"
                         }
-                    }
-                ],
-                "deprecated": false
-            }
-        },
-        "/v1/providers/{provider_id}/test": {
-            "post": {
-                "responses": {
-                    "200": {
-                        "description": "TestProviderConnectionResponse with health status.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/TestProviderConnectionResponse"
-                                }
-                            }
-                        }
                     },
-                    "400": {
-                        "$ref": "#/components/responses/BadRequest400"
-                    },
-                    "429": {
-                        "$ref": "#/components/responses/TooManyRequests429"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/InternalServerError500"
-                    },
-                    "default": {
-                        "$ref": "#/components/responses/DefaultError"
-                    }
-                },
-                "tags": [
-                    "Providers"
-                ],
-                "summary": "Test a provider connection.",
-                "description": "Test a provider connection.\nExecute a health check on a provider to verify it is reachable and functioning.\nWorks for both static and dynamic providers.",
-                "parameters": [
                     {
                         "name": "provider_id",
                         "in": "path",
-                        "description": "ID of the provider to test.",
+                        "description": "The ID of the provider to inspect.",
                         "required": true,
                         "schema": {
                             "type": "string"
@@ -5865,10 +5956,6 @@
                         "type": "string",
                         "description": "Unique identifier for this provider instance."
                     },
-                    "api": {
-                        "type": "string",
-                        "description": "API namespace this provider implements."
-                    },
                     "provider_type": {
                         "type": "string",
                         "description": "Provider type (e.g., 'remote::openai')."
@@ -5913,7 +6000,6 @@
                 "additionalProperties": false,
                 "required": [
                     "provider_id",
-                    "api",
                     "provider_type",
                     "config"
                 ],
@@ -6202,6 +6288,51 @@
                 ],
                 "title": "UpdateProviderResponse",
                 "description": "Response after updating a provider."
+            },
+            "TestProviderConnectionResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "description": "Whether the connection test succeeded"
+                    },
+                    "health": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "oneOf": [
+                                {
+                                    "type": "null"
+                                },
+                                {
+                                    "type": "boolean"
+                                },
+                                {
+                                    "type": "number"
+                                },
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "array"
+                                },
+                                {
+                                    "type": "object"
+                                }
+                            ]
+                        },
+                        "description": "Health status from the provider"
+                    },
+                    "error_message": {
+                        "type": "string",
+                        "description": "Error message if test failed"
+                    }
+                },
+                "additionalProperties": false,
+                "required": [
+                    "success"
+                ],
+                "title": "TestProviderConnectionResponse",
+                "description": "Response from testing a provider connection."
             },
             "Order": {
                 "type": "string",
@@ -9439,51 +9570,6 @@
                 ],
                 "title": "ListProvidersResponse",
                 "description": "Response containing a list of all available providers."
-            },
-            "TestProviderConnectionResponse": {
-                "type": "object",
-                "properties": {
-                    "success": {
-                        "type": "boolean",
-                        "description": "Whether the connection test succeeded"
-                    },
-                    "health": {
-                        "type": "object",
-                        "additionalProperties": {
-                            "oneOf": [
-                                {
-                                    "type": "null"
-                                },
-                                {
-                                    "type": "boolean"
-                                },
-                                {
-                                    "type": "number"
-                                },
-                                {
-                                    "type": "string"
-                                },
-                                {
-                                    "type": "array"
-                                },
-                                {
-                                    "type": "object"
-                                }
-                            ]
-                        },
-                        "description": "Health status from the provider"
-                    },
-                    "error_message": {
-                        "type": "string",
-                        "description": "Error message if test failed"
-                    }
-                },
-                "additionalProperties": false,
-                "required": [
-                    "success"
-                ],
-                "title": "TestProviderConnectionResponse",
-                "description": "Response from testing a provider connection."
             },
             "ListOpenAIResponseObject": {
                 "type": "object",

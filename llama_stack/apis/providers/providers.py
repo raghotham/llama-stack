@@ -137,24 +137,26 @@ class Providers(Protocol):
         """
         ...
 
-    @webmethod(route="/providers/{provider_id}", method="GET", level=LLAMA_STACK_API_V1)
-    async def inspect_provider(self, provider_id: str) -> ProviderInfo:
-        """Get provider.
+    @webmethod(route="/providers/{provider_id}", method="GET", level=LLAMA_STACK_API_V1, deprecated=True)
+    async def inspect_provider(self, provider_id: str) -> ListProvidersResponse:
+        """Get providers by ID (deprecated - use /providers/{api}/{provider_id} instead).
 
-        Get detailed information about a specific provider.
+        DEPRECATED: Returns all providers with the given provider_id across all APIs.
+        This can return multiple providers if the same ID is used for different APIs.
+        Use /providers/{api}/{provider_id} for unambiguous access.
 
-        :param provider_id: The ID of the provider to inspect.
-        :returns: A ProviderInfo object containing the provider's details.
+        :param provider_id: The ID of the provider(s) to inspect.
+        :returns: A ListProvidersResponse containing all providers with matching provider_id.
         """
         ...
 
     # ===== Dynamic Provider Management Methods =====
 
-    @webmethod(route="/admin/providers", method="POST", level=LLAMA_STACK_API_V1)
+    @webmethod(route="/admin/providers/{api}", method="POST", level=LLAMA_STACK_API_V1)
     async def register_provider(
         self,
-        provider_id: str,
         api: str,
+        provider_id: str,
         provider_type: str,
         config: dict[str, Any],
         attributes: dict[str, list[str]] | None = None,
@@ -164,8 +166,8 @@ class Providers(Protocol):
         Register a new provider instance at runtime. The provider will be validated,
         instantiated, and persisted to the kvstore. Requires appropriate ABAC permissions.
 
+        :param api: API namespace this provider implements (e.g., 'inference', 'vector_io').
         :param provider_id: Unique identifier for this provider instance.
-        :param api: API namespace this provider implements.
         :param provider_type: Provider type (e.g., 'remote::openai').
         :param config: Provider configuration (API keys, endpoints, etc.).
         :param attributes: Optional attributes for ABAC access control.
@@ -173,9 +175,10 @@ class Providers(Protocol):
         """
         ...
 
-    @webmethod(route="/admin/providers/{provider_id}", method="PUT", level=LLAMA_STACK_API_V1)
+    @webmethod(route="/admin/providers/{api}/{provider_id}", method="PUT", level=LLAMA_STACK_API_V1)
     async def update_provider(
         self,
+        api: str,
         provider_id: str,
         config: dict[str, Any] | None = None,
         attributes: dict[str, list[str]] | None = None,
@@ -183,9 +186,9 @@ class Providers(Protocol):
         """Update an existing provider's configuration.
 
         Update the configuration and/or attributes of a dynamic provider. The provider
-        will be re-instantiated with the new configuration (hot-reload). Static providers
-        from run.yaml cannot be updated.
+        will be re-instantiated with the new configuration (hot-reload).
 
+        :param api: API namespace the provider implements
         :param provider_id: ID of the provider to update
         :param config: New configuration parameters (merged with existing)
         :param attributes: New attributes for access control
@@ -193,25 +196,49 @@ class Providers(Protocol):
         """
         ...
 
-    @webmethod(route="/admin/providers/{provider_id}", method="DELETE", level=LLAMA_STACK_API_V1)
-    async def unregister_provider(self, provider_id: str) -> None:
+    @webmethod(route="/admin/providers/{api}/{provider_id}", method="DELETE", level=LLAMA_STACK_API_V1)
+    async def unregister_provider(self, api: str, provider_id: str) -> None:
         """Unregister a dynamic provider.
 
         Remove a dynamic provider, shutting down its instance and removing it from
-        the kvstore. Static providers from run.yaml cannot be unregistered.
+        the kvstore.
 
+        :param api: API namespace the provider implements
         :param provider_id: ID of the provider to unregister.
         """
         ...
 
-    @webmethod(route="/providers/{provider_id}/test", method="POST", level=LLAMA_STACK_API_V1)
-    async def test_provider_connection(self, provider_id: str) -> TestProviderConnectionResponse:
+    @webmethod(route="/admin/providers/{api}/{provider_id}/test", method="POST", level=LLAMA_STACK_API_V1)
+    async def test_provider_connection(self, api: str, provider_id: str) -> TestProviderConnectionResponse:
         """Test a provider connection.
 
         Execute a health check on a provider to verify it is reachable and functioning.
-        Works for both static and dynamic providers.
 
+        :param api: API namespace the provider implements.
         :param provider_id: ID of the provider to test.
         :returns: TestProviderConnectionResponse with health status.
+        """
+        ...
+
+    @webmethod(route="/providers/{api}", method="GET", level=LLAMA_STACK_API_V1)
+    async def list_providers_for_api(self, api: str) -> ListProvidersResponse:
+        """List providers for a specific API.
+
+        List all providers that implement a specific API.
+
+        :param api: The API namespace to filter by (e.g., 'inference', 'vector_io')
+        :returns: A ListProvidersResponse containing providers for the specified API.
+        """
+        ...
+
+    @webmethod(route="/providers/{api}/{provider_id}", method="GET", level=LLAMA_STACK_API_V1)
+    async def inspect_provider_for_api(self, api: str, provider_id: str) -> ProviderInfo:
+        """Get provider for specific API.
+
+        Get detailed information about a specific provider for a specific API.
+
+        :param api: The API namespace.
+        :param provider_id: The ID of the provider to inspect.
+        :returns: A ProviderInfo object containing the provider's details.
         """
         ...

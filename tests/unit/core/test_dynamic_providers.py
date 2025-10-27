@@ -83,8 +83,8 @@ class TestDynamicProviderManagement:
         with patch.object(provider_impl, "_instantiate_provider", return_value=mock_provider_instance):
             # Register a mock inference provider
             response = await provider_impl.register_provider(
-                provider_id="test-inference-1",
                 api=Api.inference.value,
+                provider_id="test-inference-1",
                 provider_type="remote::openai",
                 config={"api_key": "test-key", "url": "https://api.openai.com/v1"},
                 attributes={"team": ["test-team"]},
@@ -98,9 +98,9 @@ class TestDynamicProviderManagement:
         assert response.provider.config["api_key"] == "test-key"
         assert response.provider.attributes == {"team": ["test-team"]}
 
-        # Verify provider is stored
-        assert "test-inference-1" in provider_impl.dynamic_providers
-        assert "test-inference-1" in provider_impl.dynamic_provider_impls
+        # Verify provider is stored (using composite key)
+        assert "inference::test-inference-1" in provider_impl.dynamic_providers
+        assert "inference::test-inference-1" in provider_impl.dynamic_provider_impls
 
     async def test_register_vector_store_provider(self, provider_impl):
         """Test registering a new vector store provider."""
@@ -111,8 +111,8 @@ class TestDynamicProviderManagement:
         with patch.object(provider_impl, "_instantiate_provider", return_value=mock_provider_instance):
             # Register a mock vector_io provider
             response = await provider_impl.register_provider(
-                provider_id="test-vector-store-1",
                 api=Api.vector_io.value,
+                provider_id="test-vector-store-1",
                 provider_type="inline::faiss",
                 config={"dimension": 768, "index_path": "/tmp/faiss_index"},
             )
@@ -132,8 +132,8 @@ class TestDynamicProviderManagement:
         with patch.object(provider_impl, "_instantiate_provider", return_value=mock_provider_instance):
             # Register first provider
             await provider_impl.register_provider(
-                provider_id="test-duplicate",
                 api=Api.inference.value,
+                provider_id="test-duplicate",
                 provider_type="remote::openai",
                 config={"api_key": "key1"},
             )
@@ -141,8 +141,8 @@ class TestDynamicProviderManagement:
             # Try to register with same ID
             with pytest.raises(ValueError, match="already exists"):
                 await provider_impl.register_provider(
-                    provider_id="test-duplicate",
                     api=Api.inference.value,
+                    provider_id="test-duplicate",
                     provider_type="remote::openai",
                     config={"api_key": "key2"},
                 )
@@ -155,14 +155,15 @@ class TestDynamicProviderManagement:
         with patch.object(provider_impl, "_instantiate_provider", return_value=mock_provider_instance):
             # Register provider
             await provider_impl.register_provider(
-                provider_id="test-update",
                 api=Api.inference.value,
+                provider_id="test-update",
                 provider_type="remote::openai",
                 config={"api_key": "old-key", "timeout": 30},
             )
 
             # Update configuration
             response = await provider_impl.update_provider(
+                api=Api.inference.value,
                 provider_id="test-update",
                 config={"api_key": "new-key", "timeout": 60},
             )
@@ -181,8 +182,8 @@ class TestDynamicProviderManagement:
         with patch.object(provider_impl, "_instantiate_provider", return_value=mock_provider_instance):
             # Register provider with initial attributes
             await provider_impl.register_provider(
-                provider_id="test-attributes",
                 api=Api.inference.value,
+                provider_id="test-attributes",
                 provider_type="remote::openai",
                 config={"api_key": "test-key"},
                 attributes={"team": ["team-a"]},
@@ -190,6 +191,7 @@ class TestDynamicProviderManagement:
 
             # Update attributes
             response = await provider_impl.update_provider(
+                api=Api.inference.value,
                 provider_id="test-attributes",
                 attributes={"team": ["team-a", "team-b"], "environment": ["prod"]},
             )
@@ -201,6 +203,7 @@ class TestDynamicProviderManagement:
         """Test that updating a non-existent provider fails."""
         with pytest.raises(ValueError, match="not found"):
             await provider_impl.update_provider(
+                api=Api.inference.value,
                 provider_id="nonexistent",
                 config={"api_key": "new-key"},
             )
@@ -214,21 +217,22 @@ class TestDynamicProviderManagement:
         with patch.object(provider_impl, "_instantiate_provider", return_value=mock_provider_instance):
             # Register provider
             await provider_impl.register_provider(
-                provider_id="test-unregister",
                 api=Api.inference.value,
+                provider_id="test-unregister",
                 provider_type="remote::openai",
                 config={"api_key": "test-key"},
             )
 
             # Verify it exists
-            assert "test-unregister" in provider_impl.dynamic_providers
+            cache_key = f"{Api.inference.value}::test-unregister"
+            assert cache_key in provider_impl.dynamic_providers
 
             # Unregister provider
-            await provider_impl.unregister_provider(provider_id="test-unregister")
+            await provider_impl.unregister_provider(api=Api.inference.value, provider_id="test-unregister")
 
         # Verify it's removed
-        assert "test-unregister" not in provider_impl.dynamic_providers
-        assert "test-unregister" not in provider_impl.dynamic_provider_impls
+        assert cache_key not in provider_impl.dynamic_providers
+        assert cache_key not in provider_impl.dynamic_provider_impls
 
         # Verify shutdown was called
         mock_provider_instance.shutdown.assert_called_once()
@@ -236,7 +240,7 @@ class TestDynamicProviderManagement:
     async def test_unregister_nonexistent_provider_fails(self, provider_impl):
         """Test that unregistering a non-existent provider fails."""
         with pytest.raises(ValueError, match="not found"):
-            await provider_impl.unregister_provider(provider_id="nonexistent")
+            await provider_impl.unregister_provider(api=Api.inference.value, provider_id="nonexistent")
 
     async def test_test_provider_connection_healthy(self, provider_impl):
         """Test testing a healthy provider connection."""
@@ -246,14 +250,14 @@ class TestDynamicProviderManagement:
         with patch.object(provider_impl, "_instantiate_provider", return_value=mock_provider_instance):
             # Register provider
             await provider_impl.register_provider(
-                provider_id="test-health",
                 api=Api.inference.value,
+                provider_id="test-health",
                 provider_type="remote::openai",
                 config={"api_key": "test-key"},
             )
 
             # Test connection
-            response = await provider_impl.test_provider_connection(provider_id="test-health")
+            response = await provider_impl.test_provider_connection(api=Api.inference.value, provider_id="test-health")
 
         # Verify response
         assert response.success is True
@@ -271,14 +275,16 @@ class TestDynamicProviderManagement:
         with patch.object(provider_impl, "_instantiate_provider", return_value=mock_provider_instance):
             # Register provider
             await provider_impl.register_provider(
-                provider_id="test-unhealthy",
                 api=Api.inference.value,
+                provider_id="test-unhealthy",
                 provider_type="remote::openai",
                 config={"api_key": "invalid-key"},
             )
 
             # Test connection
-            response = await provider_impl.test_provider_connection(provider_id="test-unhealthy")
+            response = await provider_impl.test_provider_connection(
+                api=Api.inference.value, provider_id="test-unhealthy"
+            )
 
         # Verify response shows unhealthy status
         assert response.success is False
@@ -292,15 +298,15 @@ class TestDynamicProviderManagement:
         with patch.object(provider_impl, "_instantiate_provider", return_value=mock_provider_instance):
             # Register multiple providers
             await provider_impl.register_provider(
-                provider_id="dynamic-1",
                 api=Api.inference.value,
+                provider_id="dynamic-1",
                 provider_type="remote::openai",
                 config={"api_key": "key1"},
             )
 
             await provider_impl.register_provider(
-                provider_id="dynamic-2",
                 api=Api.vector_io.value,
+                provider_id="dynamic-2",
                 provider_type="inline::faiss",
                 config={"dimension": 768},
             )
@@ -321,8 +327,8 @@ class TestDynamicProviderManagement:
         with patch.object(provider_impl, "_instantiate_provider", return_value=mock_provider_instance):
             # Register provider
             await provider_impl.register_provider(
-                provider_id="test-inspect",
                 api=Api.inference.value,
+                provider_id="test-inspect",
                 provider_type="remote::openai",
                 config={"api_key": "test-key", "model": "gpt-4"},
             )
@@ -330,14 +336,17 @@ class TestDynamicProviderManagement:
         # Update the stored health info to reflect OK status
         # (In reality, the health check happens during registration,
         # but our mock may not have been properly called)
-        conn_info = provider_impl.dynamic_providers["test-inspect"]
+        cache_key = f"{Api.inference.value}::test-inspect"
+        conn_info = provider_impl.dynamic_providers[cache_key]
 
         conn_info.health = ProviderHealth.from_health_response({"status": HealthStatus.OK})
 
         # Inspect provider
-        provider_info = await provider_impl.inspect_provider(provider_id="test-inspect")
+        response = await provider_impl.inspect_provider(provider_id="test-inspect")
 
-        # Verify provider info
+        # Verify response
+        assert len(response.data) == 1
+        provider_info = response.data[0]
         assert provider_info.provider_id == "test-inspect"
         assert provider_info.api == Api.inference.value
         assert provider_info.provider_type == "remote::openai"
@@ -352,8 +361,8 @@ class TestDynamicProviderManagement:
         with patch.object(provider_impl, "_instantiate_provider", return_value=mock_provider_instance):
             # Register provider
             await provider_impl.register_provider(
-                provider_id="test-persist",
                 api=Api.inference.value,
+                provider_id="test-persist",
                 provider_type="remote::openai",
                 config={"api_key": "persist-key"},
             )
@@ -397,5 +406,6 @@ class TestDynamicProviderManagement:
             await new_impl._load_dynamic_providers()
 
         # Verify the provider was loaded from kvstore
-        assert "test-persist" in new_impl.dynamic_providers
-        assert new_impl.dynamic_providers["test-persist"].config["api_key"] == "persist-key"
+        cache_key = f"{Api.inference.value}::test-persist"
+        assert cache_key in new_impl.dynamic_providers
+        assert new_impl.dynamic_providers[cache_key].config["api_key"] == "persist-key"
