@@ -545,7 +545,9 @@ async def resolve_impls_via_provider_registration(
 
                 # Check if provider already exists (loaded from kvstore during initialization)
                 if cache_key in providers_impl.dynamic_providers:
-                    logger.info(f"Provider {provider.provider_id} for {api.value} already exists, using existing instance")
+                    logger.info(
+                        f"Provider {provider.provider_id} for {api.value} already exists, using existing instance"
+                    )
                     impl = providers_impl.dynamic_provider_impls.get(cache_key)
                     if impl is None:
                         # Provider exists but not instantiated, instantiate it
