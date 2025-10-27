@@ -310,6 +310,224 @@
                 "deprecated": false
             }
         },
+        "/v1alpha/admin/providers/{api}": {
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "RegisterProviderResponse with the registered provider info.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RegisterProviderResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest400"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests429"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/InternalServerError500"
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/DefaultError"
+                    }
+                },
+                "tags": [
+                    "Providers"
+                ],
+                "summary": "Register a new dynamic provider.",
+                "description": "Register a new dynamic provider.\nRegister a new provider instance at runtime. The provider will be validated,\ninstantiated, and persisted to the kvstore. Requires appropriate ABAC permissions.",
+                "parameters": [
+                    {
+                        "name": "api",
+                        "in": "path",
+                        "description": "API namespace this provider implements (e.g., 'inference', 'vector_io').",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RegisterProviderRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "deprecated": false
+            }
+        },
+        "/v1alpha/admin/providers/{api}/{provider_id}": {
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "UpdateProviderResponse with updated provider info",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UpdateProviderResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest400"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests429"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/InternalServerError500"
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/DefaultError"
+                    }
+                },
+                "tags": [
+                    "Providers"
+                ],
+                "summary": "Update an existing provider's configuration.",
+                "description": "Update an existing provider's configuration.\nUpdate the configuration and/or attributes of a dynamic provider. The provider\nwill be re-instantiated with the new configuration (hot-reload).",
+                "parameters": [
+                    {
+                        "name": "api",
+                        "in": "path",
+                        "description": "API namespace the provider implements",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "provider_id",
+                        "in": "path",
+                        "description": "ID of the provider to update",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateProviderRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "deprecated": false
+            },
+            "delete": {
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest400"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests429"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/InternalServerError500"
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/DefaultError"
+                    }
+                },
+                "tags": [
+                    "Providers"
+                ],
+                "summary": "Unregister a dynamic provider.",
+                "description": "Unregister a dynamic provider.\nRemove a dynamic provider, shutting down its instance and removing it from\nthe kvstore.",
+                "parameters": [
+                    {
+                        "name": "api",
+                        "in": "path",
+                        "description": "API namespace the provider implements",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "provider_id",
+                        "in": "path",
+                        "description": "ID of the provider to unregister.",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "deprecated": false
+            }
+        },
+        "/v1alpha/admin/providers/{api}/{provider_id}/health": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "TestProviderConnectionResponse with health status.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TestProviderConnectionResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest400"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests429"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/InternalServerError500"
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/DefaultError"
+                    }
+                },
+                "tags": [
+                    "Inspect"
+                ],
+                "summary": "Check provider health.",
+                "description": "Check provider health.\nExecute a health check on a provider to verify it is reachable and functioning.",
+                "parameters": [
+                    {
+                        "name": "api",
+                        "in": "path",
+                        "description": "API namespace the provider implements.",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "provider_id",
+                        "in": "path",
+                        "description": "ID of the provider to check.",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "deprecated": false
+            }
+        },
         "/v1alpha/agents": {
             "get": {
                 "responses": {
@@ -2083,6 +2301,391 @@
                     "source"
                 ],
                 "title": "RegisterDatasetRequest"
+            },
+            "RegisterProviderRequest": {
+                "type": "object",
+                "properties": {
+                    "provider_id": {
+                        "type": "string",
+                        "description": "Unique identifier for this provider instance."
+                    },
+                    "provider_type": {
+                        "type": "string",
+                        "description": "Provider type (e.g., 'remote::openai')."
+                    },
+                    "config": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "oneOf": [
+                                {
+                                    "type": "null"
+                                },
+                                {
+                                    "type": "boolean"
+                                },
+                                {
+                                    "type": "number"
+                                },
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "array"
+                                },
+                                {
+                                    "type": "object"
+                                }
+                            ]
+                        },
+                        "description": "Provider configuration (API keys, endpoints, etc.)."
+                    },
+                    "attributes": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "description": "Optional attributes for ABAC access control."
+                    }
+                },
+                "additionalProperties": false,
+                "required": [
+                    "provider_id",
+                    "provider_type",
+                    "config"
+                ],
+                "title": "RegisterProviderRequest"
+            },
+            "ProviderConnectionInfo": {
+                "type": "object",
+                "properties": {
+                    "provider_id": {
+                        "type": "string",
+                        "description": "Unique identifier for this provider instance"
+                    },
+                    "api": {
+                        "type": "string",
+                        "description": "API namespace (e.g., \"inference\", \"vector_io\", \"safety\")"
+                    },
+                    "provider_type": {
+                        "type": "string",
+                        "description": "Provider type identifier (e.g., \"remote::openai\", \"inline::faiss\")"
+                    },
+                    "config": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "oneOf": [
+                                {
+                                    "type": "null"
+                                },
+                                {
+                                    "type": "boolean"
+                                },
+                                {
+                                    "type": "number"
+                                },
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "array"
+                                },
+                                {
+                                    "type": "object"
+                                }
+                            ]
+                        },
+                        "description": "Provider-specific configuration (API keys, endpoints, etc.)"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/ProviderConnectionStatus",
+                        "description": "Current connection status"
+                    },
+                    "health": {
+                        "$ref": "#/components/schemas/ProviderHealth",
+                        "description": "Most recent health check result"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "Timestamp when provider was registered"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "Timestamp of last update"
+                    },
+                    "last_health_check": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "Timestamp of last health check"
+                    },
+                    "error_message": {
+                        "type": "string",
+                        "description": "Error message if status is failed"
+                    },
+                    "metadata": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "oneOf": [
+                                {
+                                    "type": "null"
+                                },
+                                {
+                                    "type": "boolean"
+                                },
+                                {
+                                    "type": "number"
+                                },
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "array"
+                                },
+                                {
+                                    "type": "object"
+                                }
+                            ]
+                        },
+                        "description": "User-defined metadata (deprecated, use attributes)"
+                    },
+                    "owner": {
+                        "type": "object",
+                        "properties": {
+                            "principal": {
+                                "type": "string"
+                            },
+                            "attributes": {
+                                "type": "object",
+                                "additionalProperties": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        },
+                        "additionalProperties": false,
+                        "required": [
+                            "principal"
+                        ],
+                        "description": "User who created this provider connection"
+                    },
+                    "attributes": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "description": "Key-value attributes for ABAC access control"
+                    }
+                },
+                "additionalProperties": false,
+                "required": [
+                    "provider_id",
+                    "api",
+                    "provider_type",
+                    "config",
+                    "status",
+                    "created_at",
+                    "updated_at",
+                    "metadata"
+                ],
+                "title": "ProviderConnectionInfo",
+                "description": "Information about a dynamically managed provider connection.\nThis model represents a provider that has been registered at runtime\nvia the /providers API, as opposed to static providers configured in run.yaml.\n\nDynamic providers support full lifecycle management including registration,\nconfiguration updates, health monitoring, and removal."
+            },
+            "ProviderConnectionStatus": {
+                "type": "string",
+                "enum": [
+                    "pending",
+                    "initializing",
+                    "connected",
+                    "failed",
+                    "disconnected",
+                    "testing"
+                ],
+                "title": "ProviderConnectionStatus",
+                "description": "Status of a dynamic provider connection."
+            },
+            "ProviderHealth": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "OK",
+                            "Error",
+                            "Not Implemented"
+                        ],
+                        "description": "Health status (OK, ERROR, NOT_IMPLEMENTED)"
+                    },
+                    "message": {
+                        "type": "string",
+                        "description": "Optional error or status message"
+                    },
+                    "metrics": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "oneOf": [
+                                {
+                                    "type": "null"
+                                },
+                                {
+                                    "type": "boolean"
+                                },
+                                {
+                                    "type": "number"
+                                },
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "array"
+                                },
+                                {
+                                    "type": "object"
+                                }
+                            ]
+                        },
+                        "description": "Provider-specific health metrics"
+                    },
+                    "last_checked": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "Timestamp of last health check"
+                    }
+                },
+                "additionalProperties": false,
+                "required": [
+                    "status",
+                    "metrics",
+                    "last_checked"
+                ],
+                "title": "ProviderHealth",
+                "description": "Structured wrapper around provider health status.\nThis wraps the existing dict-based HealthResponse for API responses\nwhile maintaining backward compatibility with existing provider implementations."
+            },
+            "RegisterProviderResponse": {
+                "type": "object",
+                "properties": {
+                    "provider": {
+                        "$ref": "#/components/schemas/ProviderConnectionInfo",
+                        "description": "Information about the registered provider"
+                    }
+                },
+                "additionalProperties": false,
+                "required": [
+                    "provider"
+                ],
+                "title": "RegisterProviderResponse",
+                "description": "Response after registering a provider."
+            },
+            "UpdateProviderRequest": {
+                "type": "object",
+                "properties": {
+                    "config": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "oneOf": [
+                                {
+                                    "type": "null"
+                                },
+                                {
+                                    "type": "boolean"
+                                },
+                                {
+                                    "type": "number"
+                                },
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "array"
+                                },
+                                {
+                                    "type": "object"
+                                }
+                            ]
+                        },
+                        "description": "New configuration parameters (merged with existing)"
+                    },
+                    "attributes": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "description": "New attributes for access control"
+                    }
+                },
+                "additionalProperties": false,
+                "title": "UpdateProviderRequest"
+            },
+            "UpdateProviderResponse": {
+                "type": "object",
+                "properties": {
+                    "provider": {
+                        "$ref": "#/components/schemas/ProviderConnectionInfo",
+                        "description": "Updated provider information"
+                    }
+                },
+                "additionalProperties": false,
+                "required": [
+                    "provider"
+                ],
+                "title": "UpdateProviderResponse",
+                "description": "Response after updating a provider."
+            },
+            "TestProviderConnectionResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "description": "Whether the connection test succeeded"
+                    },
+                    "health": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "oneOf": [
+                                {
+                                    "type": "null"
+                                },
+                                {
+                                    "type": "boolean"
+                                },
+                                {
+                                    "type": "number"
+                                },
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "array"
+                                },
+                                {
+                                    "type": "object"
+                                }
+                            ]
+                        },
+                        "description": "Health status from the provider"
+                    },
+                    "error_message": {
+                        "type": "string",
+                        "description": "Error message if test failed"
+                    }
+                },
+                "additionalProperties": false,
+                "required": [
+                    "success"
+                ],
+                "title": "TestProviderConnectionResponse",
+                "description": "Response from testing a provider connection."
             },
             "AgentConfig": {
                 "type": "object",
@@ -5521,8 +6124,18 @@
             "x-displayName": "Evaluations"
         },
         {
+            "name": "Inspect",
+            "description": "APIs for inspecting the Llama Stack service, including health status, available API routes with methods and implementing providers.",
+            "x-displayName": "Inspect"
+        },
+        {
             "name": "PostTraining (Coming Soon)",
             "description": ""
+        },
+        {
+            "name": "Providers",
+            "description": "Providers API for inspecting, listing, and modifying providers and their configurations.",
+            "x-displayName": "Providers"
         }
     ],
     "x-tagGroups": [
@@ -5534,7 +6147,9 @@
                 "DatasetIO",
                 "Datasets",
                 "Eval",
-                "PostTraining (Coming Soon)"
+                "Inspect",
+                "PostTraining (Coming Soon)",
+                "Providers"
             ]
         }
     ]
