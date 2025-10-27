@@ -604,9 +604,7 @@ class Stack:
         )
 
         # Initialize the ProviderImpl so it has access to kvstore
-        print("DEBUG: About to initialize ProviderImpl")
         await internal_impls[Api.providers].initialize()
-        print("DEBUG: ProviderImpl initialized, about to call resolve_impls_via_provider_registration")
 
         # Register all providers from run.yaml through ProviderImpl
         impls = await resolve_impls_via_provider_registration(
