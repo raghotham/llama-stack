@@ -15,6 +15,7 @@ from llama_stack.apis.inspect import (
     RouteInfo,
     VersionInfo,
 )
+from llama_stack.apis.version import LLAMA_STACK_API_V1
 from llama_stack.core.datatypes import StackRunConfig
 from llama_stack.core.external import load_external_apis
 from llama_stack.core.server.routes import get_all_api_routes
@@ -39,20 +40,20 @@ class DistributionInspectImpl(Inspect):
     async def initialize(self) -> None:
         pass
 
-    async def list_routes(self, api_level: str | None = None) -> ListRoutesResponse:
+    async def list_routes(self, api_filter: str | None = None) -> ListRoutesResponse:
         run_config: StackRunConfig = self.config.run_config
 
-        # Helper function to determine if a route should be included based on api_level filter
+        # Helper function to determine if a route should be included based on api_filter
         def should_include_route(webmethod) -> bool:
-            if api_level is None:
+            if api_filter is None:
                 # Default: only non-deprecated v1 APIs
-                return not webmethod.deprecated and webmethod.level == "v1"
-            elif api_level == "deprecated":
-                # Include only deprecated routes
-                return webmethod.deprecated
+                return not webmethod.deprecated and webmethod.level == LLAMA_STACK_API_V1
+            elif api_filter == "deprecated":
+                # Special filter: show deprecated routes regardless of their actual level
+                return bool(webmethod.deprecated)
             else:
-                # Include routes matching the specified level (non-deprecated)
-                return not webmethod.deprecated and webmethod.level == api_level
+                # Filter by API level (non-deprecated routes only)
+                return not webmethod.deprecated and webmethod.level == api_filter
 
         ret = []
         external_apis = load_external_apis(run_config)

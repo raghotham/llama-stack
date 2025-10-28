@@ -8,12 +8,16 @@ from typing import Literal, Protocol, runtime_checkable
 
 from pydantic import BaseModel
 
-from llama_stack.apis.version import LLAMA_STACK_API_V1
+from llama_stack.apis.version import (
+    LLAMA_STACK_API_V1,
+)
 from llama_stack.providers.datatypes import HealthStatus
 from llama_stack.schema_utils import json_schema_type, webmethod
 
-# Valid API level values for filtering routes
-ApiLevel = Literal["v1", "v1alpha", "v1beta", "deprecated"]
+# Valid values for the route filter parameter.
+# Actual API levels: v1, v1alpha, v1beta (filters by level, excludes deprecated)
+# Special filter value: "deprecated" (shows deprecated routes regardless of level)
+ApiFilter = Literal["v1", "v1alpha", "v1beta", "deprecated"]
 
 
 @json_schema_type
@@ -67,13 +71,12 @@ class Inspect(Protocol):
     """
 
     @webmethod(route="/inspect/routes", method="GET", level=LLAMA_STACK_API_V1)
-    async def list_routes(self, api_level: ApiLevel | None = None) -> ListRoutesResponse:
+    async def list_routes(self, api_filter: ApiFilter | None = None) -> ListRoutesResponse:
         """List routes.
 
         List all available API routes with their methods and implementing providers.
 
-        :param api_level: Optional filter for API level. Can be 'v1', 'v1alpha', 'v1beta', or 'deprecated'.
-                         If not specified, returns only non-deprecated v1 APIs and providers.
+        :param api_filter: Optional filter to control which routes are returned. Can be an API level ('v1', 'v1alpha', 'v1beta') to show non-deprecated routes at that level, or 'deprecated' to show deprecated routes across all levels. If not specified, returns only non-deprecated v1 routes.
         :returns: Response containing information about all available routes.
         """
         ...
