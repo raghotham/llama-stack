@@ -39,8 +39,20 @@ class DistributionInspectImpl(Inspect):
     async def initialize(self) -> None:
         pass
 
-    async def list_routes(self) -> ListRoutesResponse:
+    async def list_routes(self, api_level: str | None = None) -> ListRoutesResponse:
         run_config: StackRunConfig = self.config.run_config
+
+        # Helper function to determine if a route should be included based on api_level filter
+        def should_include_route(webmethod) -> bool:
+            if api_level is None:
+                # Default: only non-deprecated v1 APIs
+                return not webmethod.deprecated and webmethod.level == "v1"
+            elif api_level == "deprecated":
+                # Include only deprecated routes
+                return webmethod.deprecated
+            else:
+                # Include routes matching the specified level (non-deprecated)
+                return not webmethod.deprecated and webmethod.level == api_level
 
         ret = []
         external_apis = load_external_apis(run_config)
@@ -55,8 +67,8 @@ class DistributionInspectImpl(Inspect):
                             method=next(iter([m for m in e.methods if m != "HEAD"])),
                             provider_types=[],  # These APIs don't have "real" providers - they're internal to the stack
                         )
-                        for e, _ in endpoints
-                        if e.methods is not None
+                        for e, webmethod in endpoints
+                        if e.methods is not None and should_include_route(webmethod)
                     ]
                 )
             else:
@@ -69,8 +81,8 @@ class DistributionInspectImpl(Inspect):
                                 method=next(iter([m for m in e.methods if m != "HEAD"])),
                                 provider_types=[p.provider_type for p in providers],
                             )
-                            for e, _ in endpoints
-                            if e.methods is not None
+                            for e, webmethod in endpoints
+                            if e.methods is not None and should_include_route(webmethod)
                         ]
                     )
 

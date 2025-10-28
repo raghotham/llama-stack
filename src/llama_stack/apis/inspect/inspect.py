@@ -4,13 +4,16 @@
 # This source code is licensed under the terms described in the LICENSE file in
 # the root directory of this source tree.
 
-from typing import Protocol, runtime_checkable
+from typing import Literal, Protocol, runtime_checkable
 
 from pydantic import BaseModel
 
 from llama_stack.apis.version import LLAMA_STACK_API_V1
 from llama_stack.providers.datatypes import HealthStatus
 from llama_stack.schema_utils import json_schema_type, webmethod
+
+# Valid API level values for filtering routes
+ApiLevel = Literal["v1", "v1alpha", "v1beta", "deprecated"]
 
 
 @json_schema_type
@@ -64,11 +67,13 @@ class Inspect(Protocol):
     """
 
     @webmethod(route="/inspect/routes", method="GET", level=LLAMA_STACK_API_V1)
-    async def list_routes(self) -> ListRoutesResponse:
+    async def list_routes(self, api_level: ApiLevel | None = None) -> ListRoutesResponse:
         """List routes.
 
         List all available API routes with their methods and implementing providers.
 
+        :param api_level: Optional filter for API level. Can be 'v1', 'v1alpha', 'v1beta', or 'deprecated'.
+                         If not specified, returns only non-deprecated v1 APIs and providers.
         :returns: Response containing information about all available routes.
         """
         ...
