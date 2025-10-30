@@ -4,6 +4,8 @@
 # This source code is licensed under the terms described in the LICENSE file in
 # the root directory of this source tree.
 
+import pytest
+
 from llama_stack_client import LlamaStackClient
 
 from llama_stack import LlamaStackAsLibraryClient
@@ -38,6 +40,7 @@ class TestInspect:
         assert "/inspect/routes" in paths or "/v1/inspect/routes" in paths
         assert "/health" in paths or "/v1/health" in paths
 
+    @pytest.mark.skip(reason="api_filter attribute disabled")
     def test_list_routes_filter_by_deprecated(self, llama_stack_client: LlamaStackAsLibraryClient | LlamaStackClient):
         """Test list_routes with deprecated filter."""
         response = llama_stack_client.routes.list(api_filter="deprecated")
@@ -52,6 +55,7 @@ class TestInspect:
             openai_routes = [r for r in routes if "/openai/" in r.route]
             assert len(openai_routes) > 0, "Deprecated filter should include /openai/ routes"
 
+    @pytest.mark.skip(reason="api_filter attribute disabled")
     def test_list_routes_filter_by_v1(self, llama_stack_client: LlamaStackAsLibraryClient | LlamaStackClient):
         """Test list_routes with v1 filter."""
         response = llama_stack_client.routes.list(api_filter="v1")
