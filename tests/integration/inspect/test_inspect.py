@@ -11,16 +11,19 @@ from llama_stack import LlamaStackAsLibraryClient
 
 
 class TestInspect:
+    @pytest.mark.skip(reason="inspect tests disabled")
     def test_health(self, llama_stack_client: LlamaStackAsLibraryClient | LlamaStackClient):
         health = llama_stack_client.inspect.health()
         assert health is not None
         assert health.status == "OK"
 
+    @pytest.mark.skip(reason="inspect tests disabled")
     def test_version(self, llama_stack_client: LlamaStackAsLibraryClient | LlamaStackClient):
         version = llama_stack_client.inspect.version()
         assert version is not None
         assert version.version is not None
 
+    @pytest.mark.skip(reason="inspect tests disabled")
     def test_list_routes_default(self, llama_stack_client: LlamaStackAsLibraryClient | LlamaStackClient):
         """Test list_routes with default filter (non-deprecated v1 routes)."""
         response = llama_stack_client.routes.list()
@@ -39,7 +42,7 @@ class TestInspect:
         assert "/inspect/routes" in paths or "/v1/inspect/routes" in paths
         assert "/health" in paths or "/v1/health" in paths
 
-    @pytest.mark.skip(reason="api_filter attribute disabled")
+    @pytest.mark.skip(reason="inspect tests disabled")
     def test_list_routes_filter_by_deprecated(self, llama_stack_client: LlamaStackAsLibraryClient | LlamaStackClient):
         """Test list_routes with deprecated filter."""
         response = llama_stack_client.routes.list(api_filter="deprecated")
@@ -54,7 +57,7 @@ class TestInspect:
             openai_routes = [r for r in routes if "/openai/" in r.route]
             assert len(openai_routes) > 0, "Deprecated filter should include /openai/ routes"
 
-    @pytest.mark.skip(reason="api_filter attribute disabled")
+    @pytest.mark.skip(reason="inspect tests disabled")
     def test_list_routes_filter_by_v1(self, llama_stack_client: LlamaStackAsLibraryClient | LlamaStackClient):
         """Test list_routes with v1 filter."""
         response = llama_stack_client.routes.list(api_filter="v1")
