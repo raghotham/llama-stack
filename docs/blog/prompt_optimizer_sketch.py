@@ -330,7 +330,7 @@ if __name__ == "__main__":
     optimizer = OptimizerAgent(
         client=client,
         model=MODEL,
-        judge_model=MODEL,
+        judge_model="ollama/gpt-oss:20b",
         rag_agent=rag_agent,
         ledger=ledger,
         prompt_id=initial.prompt_id,
