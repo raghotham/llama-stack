@@ -94,6 +94,38 @@ class RAGAgent:
         self.model = model
         self.vector_store_id = vector_store_id
 
+    @classmethod
+    def from_files(
+        cls,
+        client: LlamaStackClient,
+        model: str,
+        name: str,
+        file_paths: list[str],
+        embedding_model: str = "all-MiniLM-L6-v2",
+        embedding_dimension: int = 384,
+    ) -> "RAGAgent":
+        """Create a RAGAgent with a new vector store populated from local files."""
+        import time
+
+        vector_store = client.vector_stores.create(
+            name=name,
+            embedding_model=embedding_model,
+            embedding_dimension=embedding_dimension,
+        )
+
+        for path in file_paths:
+            file = client.files.create(file=open(path, "rb"), purpose="assistants")
+            attach = client.vector_stores.files.create(
+                vector_store_id=vector_store.id, file_id=file.id,
+            )
+            while attach.status == "in_progress":
+                time.sleep(0.5)
+                attach = client.vector_stores.files.retrieve(
+                    vector_store_id=vector_store.id, file_id=file.id,
+                )
+
+        return cls(client, model, vector_store.id)
+
     def query(self, question: str, system_prompt: str) -> str:
         """Run a RAG query: search the vector store and generate an answer."""
         response = self.client.responses.create(
@@ -308,15 +340,16 @@ if __name__ == "__main__":
     client = LlamaStackClient(base_url="http://localhost:8321")
 
     MODEL = "ollama/llama3.1:8b"
-    VECTOR_STORE_ID = "vs_xxx"  # pre-created with ingested documents
 
     TEST_CASES = [
         {"question": "What is the maximum context length of Llama 3.1?", "expected": "128K tokens"},
         {"question": "What languages does Llama 3.1 support?", "expected": "English, German, French, Italian, Portuguese, Hindi, Spanish, Thai"},
     ]
 
-    # Create the inner RAG agent
-    rag_agent = RAGAgent(client, model=MODEL, vector_store_id=VECTOR_STORE_ID)
+    # Create the inner RAG agent with a vector store from local files
+    rag_agent = RAGAgent.from_files(
+        client, model=MODEL, name="llama-docs", file_paths=["llama3_model_card.txt"],
+    )
 
     # Create the initial system prompt
     initial = client.prompts.create(

@@ -61,6 +61,16 @@ class RAGAgent:
         self.model = model
         self.vector_store_id = vector_store_id
 
+    @classmethod
+    def from_files(cls, client, model, name, file_paths, ...):
+        """Create a RAGAgent with a new vector store populated from local files."""
+        vector_store = client.vector_stores.create(name=name, ...)
+        for path in file_paths:
+            file = client.files.create(file=open(path, "rb"), purpose="assistants")
+            client.vector_stores.files.create(vector_store_id=vector_store.id, file_id=file.id)
+            # ... poll until indexing completes ...
+        return cls(client, model, vector_store.id)
+
     def query(self, question: str, system_prompt: str) -> str:
         response = self.client.responses.create(
             model=self.model,
@@ -72,7 +82,7 @@ class RAGAgent:
         return response.output_text
 ```
 
-The `instructions` parameter sets the system prompt, and `file_search` tells the Responses API to automatically search the vector store for relevant context before generating. The system prompt is what the optimizer will iterate on — how the agent uses retrieved context, whether it cites sources, how concise it is.
+The `from_files` classmethod handles vector store creation, file upload, and indexing. The `instructions` parameter sets the system prompt, and `file_search` tells the Responses API to search the vector store for relevant context before generating. The system prompt is what the optimizer will iterate on — how the agent uses retrieved context, whether it cites sources, how concise it is.
 
 ## The Outer Agent: OptimizerAgent
 
@@ -207,54 +217,27 @@ uv run --with llama-stack llama stack run ollama
 Then set up the vector store with some documents for the RAG agent to search over, create the initial prompt, and run the optimizer:
 
 ```python
-import time
 from llama_stack_client import LlamaStackClient
 
 client = LlamaStackClient(base_url="http://localhost:8321")
 MODEL = "ollama/llama3.1:8b"
 
-# --- Set up the vector store with documents ---
-
-vector_store = client.vector_stores.create(
-    name="llama-docs",
-    embedding_model="all-MiniLM-L6-v2",
-    embedding_dimension=384,
+# Create the inner RAG agent with a vector store from local files
+rag_agent = RAGAgent.from_files(
+    client, model=MODEL, name="llama-docs", file_paths=["llama3_model_card.txt"],
 )
 
-# Upload a document
-file = client.files.create(
-    file=open("llama3_model_card.txt", "rb"),
-    purpose="assistants",
-)
-
-# Attach it to the vector store and wait for indexing
-attach = client.vector_stores.files.create(
-    vector_store_id=vector_store.id,
-    file_id=file.id,
-)
-while attach.status == "in_progress":
-    time.sleep(0.5)
-    attach = client.vector_stores.files.retrieve(
-        vector_store_id=vector_store.id, file_id=file.id,
-    )
-
-# --- Verify the RAG agent works ---
-
-rag_agent = RAGAgent(client, model=MODEL, vector_store_id=vector_store.id)
-answer = rag_agent.query(
-    "What is the max context length of Llama 3.1?",
-    system_prompt="Answer based on the provided context.",
-)
+# Verify the RAG agent works
+answer = rag_agent.query("What is the max context length of Llama 3.1?",
+                         system_prompt="Answer based on the provided context.")
 print(f"RAG agent says: {answer}")
 
-# --- Create the initial system prompt ---
-
+# Create the initial system prompt via Prompts API
 initial = client.prompts.create(
     prompt="You are a helpful assistant. Answer questions based on the provided context.",
 )
 
-# --- Run the optimizer ---
-
+# Run the optimizer
 optimizer = OptimizerAgent(
     client=client,
     model=MODEL,
@@ -269,8 +252,7 @@ optimizer = OptimizerAgent(
 )
 optimizer.run(max_iterations=5)
 
-# --- Show the best prompt ---
-
+# Show the best prompt
 best = optimizer.best_prompt()
 print(f"Best prompt (v{best['version']}, score={best['score']:.2f}):")
 print(f"  {best['prompt']}")
