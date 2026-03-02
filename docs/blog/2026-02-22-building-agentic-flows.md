@@ -48,7 +48,7 @@ The optimizer uses the Responses API with function tools that call back into Lla
 
 - A running Llama Stack server with Ollama: `llama stack run ollama`
 - Python SDK: `pip install llama-stack-client`
-- A model available via Ollama (e.g., `ollama pull llama3.1:8b`)
+- Two models via Ollama: `llama3.1:8b` for the RAG agent and `gpt-oss:20b` as the judge
 
 ## The Inner Agent: RAGAgent
 
@@ -200,6 +200,7 @@ First, make sure you have a Llama Stack server running with Ollama:
 
 ```bash
 ollama pull llama3.1:8b
+ollama pull gpt-oss:20b
 uv run --with llama-stack llama stack run ollama
 ```
 
@@ -257,7 +258,7 @@ initial = client.prompts.create(
 optimizer = OptimizerAgent(
     client=client,
     model=MODEL,
-    judge_model=MODEL,
+    judge_model="ollama/gpt-oss:20b",
     rag_agent=rag_agent,
     ledger=ScoreLedger(),
     prompt_id=initial.prompt_id,
