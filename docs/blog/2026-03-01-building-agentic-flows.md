@@ -7,7 +7,7 @@ authors:
     url: https://github.com/llamastack
     image_url: https://llamastack.github.io/img/llama-stack-logo.png
 tags: [agents, responses-api, conversations, prompts, tutorial]
-date: 2026-02-22
+date: 2026-03-01
 ---
 
 What if your AI agent could improve itself? In this post, we build an RL-style optimization loop where an outer "optimizer agent" iteratively improves the system prompt of an inner RAG agent — using Llama Stack's own APIs as tools. The optimizer proposes prompt changes, tests them against a benchmark, scores the results with an LLM judge, and learns from its history.
@@ -62,9 +62,10 @@ class RAGAgent:
         self.vector_store_id = vector_store_id
 
     @classmethod
-    def from_files(cls, client, model, name, file_paths, ...):
-        """Create a RAGAgent with a new vector store populated from local files."""
-        vector_store = client.vector_stores.create(name=name, ...)
+    def from_files(cls, client, model, name, file_paths):
+        """Create a RAGAgent with a new vector store populated from local files.
+        Also accepts embedding_model and embedding_dimension kwargs."""
+        vector_store = client.vector_stores.create(name=name)
         for path in file_paths:
             file = client.files.create(file=open(path, "rb"), purpose="assistants")
             client.vector_stores.files.create(vector_store_id=vector_store.id, file_id=file.id)
