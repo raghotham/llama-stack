@@ -68,7 +68,9 @@ class RAGAgent:
         vector_store = client.vector_stores.create(name=name)
         for path in file_paths:
             file = client.files.create(file=open(path, "rb"), purpose="assistants")
-            client.vector_stores.files.create(vector_store_id=vector_store.id, file_id=file.id)
+            client.vector_stores.files.create(
+                vector_store_id=vector_store.id, file_id=file.id
+            )
             # ... poll until indexing completes ...
         return cls(client, model, vector_store.id)
 
@@ -94,16 +96,21 @@ The optimizer registers function tools that the LLM can call. Each tool is a thi
 ```python
 class OptimizerAgent:
     ...
+
     def _register_tools(self):
 
         @tool
         def update_prompt(
             new_prompt: Annotated[str, "The improved system prompt text"],
-            current_version: Annotated[int, "Current version number (for optimistic locking)"],
+            current_version: Annotated[
+                int, "Current version number (for optimistic locking)"
+            ],
         ) -> dict:
             """Create a new version of the system prompt."""
             result = self.client.prompts.update(
-                self.prompt_id, prompt=new_prompt, version=current_version,
+                self.prompt_id,
+                prompt=new_prompt,
+                version=current_version,
             )
             return {"prompt_id": result.prompt_id, "version": result.version}
 
@@ -123,6 +130,7 @@ The Prompts API handles versioning automatically — each `update` increments th
 ```python
 class OptimizerAgent:
     ...
+
     def _register_tools(self):
         ...
 
@@ -143,14 +151,16 @@ class OptimizerAgent:
             """Score a RAG answer using LLM-as-judge."""
             response = self.client.chat.completions.create(
                 model=self.judge_model,
-                messages=[{
-                    "role": "user",
-                    "content": (
-                        f"Score the following answer on a scale of 0.0 to 1.0.\n\n"
-                        f"Question: {question}\nExpected: {expected}\nActual: {actual}\n\n"
-                        f'Respond with JSON: {{"score": <float>, "reasoning": "<explanation>"}}'
-                    ),
-                }],
+                messages=[
+                    {
+                        "role": "user",
+                        "content": (
+                            f"Score the following answer on a scale of 0.0 to 1.0.\n\n"
+                            f"Question: {question}\nExpected: {expected}\nActual: {actual}\n\n"
+                            f'Respond with JSON: {{"score": <float>, "reasoning": "<explanation>"}}'
+                        ),
+                    }
+                ],
             )
             return json.loads(response.choices[0].message.content)
 ```
@@ -168,6 +178,7 @@ This is the core of the optimizer. Each iteration, the agent uses the Responses 
 ```python
 class OptimizerAgent:
     ...
+
     def run(self, max_iterations: int = 5):
         for iteration in range(max_iterations):
             inputs = [{"role": "user", "content": optimization_prompt}]
@@ -182,7 +193,9 @@ class OptimizerAgent:
                     stream=False,
                 )
 
-                function_calls = [o for o in response.output if o.type == "function_call"]
+                function_calls = [
+                    o for o in response.output if o.type == "function_call"
+                ]
                 if not function_calls:
                     break  # Model is done — no more tool calls
 
@@ -191,11 +204,13 @@ class OptimizerAgent:
                 for fc in function_calls:
                     result = self._execute_tool_call(fc.name, fc.arguments)
                     inputs.append(fc)
-                    inputs.append({
-                        "type": "function_call_output",
-                        "call_id": fc.call_id,
-                        "output": result,
-                    })
+                    inputs.append(
+                        {
+                            "type": "function_call_output",
+                            "call_id": fc.call_id,
+                            "output": result,
+                        }
+                    )
 ```
 
 The pattern is straightforward:
@@ -225,12 +240,17 @@ MODEL = "ollama/llama3.1:8b"
 
 # Create the inner RAG agent with a vector store from local files
 rag_agent = RAGAgent.from_files(
-    client, model=MODEL, name="llama-docs", file_paths=["llama3_model_card.txt"],
+    client,
+    model=MODEL,
+    name="llama-docs",
+    file_paths=["llama3_model_card.txt"],
 )
 
 # Verify the RAG agent works
-answer = rag_agent.query("What is the max context length of Llama 3.1?",
-                         system_prompt="Answer based on the provided context.")
+answer = rag_agent.query(
+    "What is the max context length of Llama 3.1?",
+    system_prompt="Answer based on the provided context.",
+)
 print(f"RAG agent says: {answer}")
 
 # Create the initial system prompt via Prompts API
@@ -247,8 +267,14 @@ optimizer = OptimizerAgent(
     ledger=ScoreLedger(),
     prompt_id=initial.prompt_id,
     test_cases=[
-        {"question": "What is the max context length of Llama 3.1?", "expected": "128K tokens"},
-        {"question": "What languages does Llama 3.1 support?", "expected": "English, German, French, Italian, Portuguese, Hindi, Spanish, Thai"},
+        {
+            "question": "What is the max context length of Llama 3.1?",
+            "expected": "128K tokens",
+        },
+        {
+            "question": "What languages does Llama 3.1 support?",
+            "expected": "English, German, French, Italian, Portuguese, Hindi, Spanish, Thai",
+        },
     ],
 )
 optimizer.run(max_iterations=5)
