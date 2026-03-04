@@ -3,7 +3,7 @@ slug: building-agentic-flows-with-conversations-and-responses
 title: "Building a Self-Improving Agent with Llama Stack"
 authors:
   - name: Raghotham Murthy
-    title: Llama Stack Team
+    title: Llama Stack Core Team
     url: https://github.com/raghotham
     image_url: https://github.com/raghotham.png
 tags: [agents, responses-api, conversations, prompts, tutorial]
@@ -48,8 +48,8 @@ The optimizer uses the Responses API with client-side function tools that call b
 
 ## Prerequisites
 
-- A running Llama Stack server with Ollama: `llama stack run ollama`
-- Python SDK: `pip install llama-stack-client`
+- A running Llama Stack server with Ollama: `uv run --with llama-stack llama stack run ollama`
+- Python SDK: `uv pip install llama-stack-client`
 - Two models via Ollama: `llama3.1:8b` for the RAG agent and `gpt-oss:20b` as the judge
 
 ## The Inner Agent: RAGAgent
