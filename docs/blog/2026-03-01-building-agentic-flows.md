@@ -219,15 +219,9 @@ class OptimizerAgent:
                     )
 ```
 
-The agentic pattern here works the same way for any Responses API agent:
+In a typical iteration, the optimizer might make 10+ tool calls: `get_history` to review past scores, `get_prompt` to read the current prompt, `update_prompt` to write an improved version, then `run_rag_test` and `judge_answer` for each test case, and finally `log_result` to record the average score. The model decides the order — sometimes it checks history first, sometimes it skips straight to testing if it already has an idea.
 
-1. Call `responses.create()` with function tools and a `conversation` ID
-2. Check if the response contains `function_call` outputs — if not, the model is done
-3. Execute each tool call client-side and collect the results
-4. Feed the results back as `function_call_output` items in the next request
-5. Repeat until the model responds with text instead of tool calls
-
-The key insight is the `conversation` parameter. Without it, each iteration would start from scratch — the optimizer would have no memory of what it already tried. With it, Llama Stack persists all turns server-side, so by iteration 3, the optimizer can look back at its history and reason: "v1 scored 0.4 because answers were too vague, v2 scored 0.7 after I added citation instructions, let me try adding format constraints for v3."
+The `conversation` parameter is what makes this an optimization loop rather than isolated attempts. Without it, each iteration starts from scratch. With it, Llama Stack persists all turns server-side, so by iteration 3, the optimizer can look back and reason: "v1 scored 0.4 because answers were too vague, v2 scored 0.7 after I added citation instructions, let me try adding format constraints for v3."
 
 ## Running It
 
