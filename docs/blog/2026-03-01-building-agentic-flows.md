@@ -28,22 +28,21 @@ The system has two agents, each built on Llama Stack but serving very different 
 The optimizer uses the Responses API with client-side function tools that call back into Llama Stack's Prompts API and Responses API. The Conversations API ties it all together — by passing a `conversation` ID to each `responses.create()` call, the optimizer's full reasoning history persists across iterations. It remembers which prompts it already tried, what scores they received, and what its reasoning was, so it can make progressively better decisions.
 
 ```
-┌─────────────────────────────────────────────────────┐
-│  OptimizerAgent (Responses API + function tools)    │
-│                                                     │
-│  for each iteration:                                │
-│    1. get_history()        → read past scores       │
-│    2. get_prompt()         → read current prompt    │
-│    3. run_rag_test()       → test the RAG agent     │
-│    4. judge_answer()       → score with LLM judge   │
-│    5. propose_new_prompt() → improve based on judge  │
-│    6. log_result()         → record the score       │
-│                                                     │
-│  Conversation tracks reasoning across iterations    │
-├─────────────────────────────────────────────────────┤
-│  RAGAgent (Responses API + file_search)             │
-│  Vector Store ◄── file_search                       │
-└─────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────┐
+│  OptimizerAgent (Responses API agentic loop)          │
+│                                                       │
+│  LLM decides tool order; each tool is deterministic:  │
+│    get_history()         → read past scores           │
+│    get_prompt()          → read current prompt        │
+│    evaluate_prompt()     → test ALL cases + judge     │
+│    log_result()          → record the score           │
+│    propose_new_prompt()  → improve based on feedback  │
+│                                                       │
+│  Conversation tracks reasoning across iterations      │
+├───────────────────────────────────────────────────────┤
+│  RAGAgent (Responses API + file_search)               │
+│  Vector Store ◄── file_search                         │
+└───────────────────────────────────────────────────────┘
 ```
 
 ## Prerequisites
@@ -91,15 +90,15 @@ The `from_files` classmethod handles vector store creation, file upload, and ind
 
 ## The Outer Agent: OptimizerAgent
 
-The optimizer agent is itself an LLM-driven loop — it uses the Responses API with function tools, just like any other Llama Stack agent. What makes it interesting is *what* those tools do: they call back into Llama Stack's own APIs.
+The optimizer agent is itself an LLM-driven agentic loop — it uses the Responses API with function tools, just like any other Llama Stack agent. The LLM decides which tools to call and in what order. But each tool is internally deterministic: `evaluate_prompt` always runs *all* test cases and judges *every* response before returning.
 
-The optimizer doesn't have hardcoded logic for "try this, then that." Instead, it receives a high-level instruction ("improve this RAG agent's system prompt") and a set of tools, and the LLM decides which tools to call and in what order. Over multiple iterations, the Conversations API preserves the optimizer's full reasoning history — it can see which prompts it already tried, what scores they got, and why. This is the RL-style feedback loop: propose → test → score → learn → repeat.
+This gives us the best of both worlds. The optimizer LLM handles the creative work — reading history, interpreting feedback, deciding when to try a new approach — while the evaluation and scoring are rigorous and complete. Over multiple iterations, the Conversations API preserves the optimizer's full reasoning history, so it can learn from what it tried before.
 
-The tools fall into three categories:
+The optimizer has five tools:
 
-### Prompt management tools (Prompts API)
+### Evaluation tool
 
-The optimizer reads prompt versions through the Prompts API and proposes improvements using the judge model. `propose_new_prompt` is the key tool — it takes the current prompt and judge feedback, asks the judge model to generate an improved version, and saves it via the Prompts API. Each version is immutable, so we get a full audit trail of every prompt the optimizer tried:
+`evaluate_prompt` is the core tool. Given a system prompt, it deterministically runs the RAG agent on every test case, judges each response with the judge model, and returns per-case scores plus an overall average. No test cases are skipped, no matter what the optimizer LLM decides:
 
 ```python
 class OptimizerAgent:
@@ -108,26 +107,56 @@ class OptimizerAgent:
     def _register_tools(self):
 
         @tool
-        def get_prompt(
-            version: Annotated[int | None, "Specific version to fetch"] = None,
+        def evaluate_prompt(
+            system_prompt: Annotated[str, "The system prompt to evaluate"],
         ) -> dict:
-            """Fetch the current system prompt text and version."""
-            result = self.client.prompts.retrieve(self.prompt_id, version=version)
-            return {"prompt": result.prompt, "version": result.version}
+            """Run the RAG agent on ALL test cases, judge every response, return scores."""
+            results = []
+            for tc in self.test_cases:
+                answer = self.rag_agent.query(tc["question"], system_prompt)
+                judgment = self.client.responses.create(
+                    model=self.judge_model,
+                    input=(
+                        f"Score the following answer on a scale of 0.0 to 1.0.\n\n"
+                        f"Question: {tc['question']}\n"
+                        f"Expected: {tc['expected']}\nActual: {answer}\n\n"
+                        f'Respond with JSON: {{"score": <float>, "reasoning": "..."}}'
+                    ),
+                    stream=False,
+                )
+                score_data = json.loads(judgment.output_text)
+                results.append({**tc, "actual": answer, **score_data})
+
+            avg_score = sum(r["score"] for r in results) / len(results)
+            return {"results": results, "average_score": avg_score}
+```
+
+Notice the self-referential structure: the optimizer agent calls `evaluate_prompt`, which calls `responses.create()` on the RAG agent (triggering `file_search` on the vector store), then calls `responses.create()` again on the judge model to score the answer — multiple layers of Llama Stack APIs invoked from a single tool call.
+
+### Prompt proposal tool
+
+`propose_new_prompt` takes the current prompt and judge feedback, uses the judge model to generate an improved version, and saves it via the Prompts API. The judge model does double duty — scoring answers *and* proposing improvements based on its own feedback:
+
+```python
+class OptimizerAgent:
+    ...
+
+    def _register_tools(self):
+        ...
 
         @tool
         def propose_new_prompt(
             current_prompt: Annotated[str, "The current system prompt"],
-            judge_feedback: Annotated[str, "Judge feedback on performance"],
-            current_version: Annotated[int, "Current version number"],
+            feedback: Annotated[str, "Judge feedback from evaluate_prompt"],
+            current_version: Annotated[int, "Current version (optimistic locking)"],
         ) -> dict:
-            """Use the judge model to propose an improved prompt based on feedback, then save it."""
+            """Use the judge model to propose an improved prompt, then save it."""
             response = self.client.responses.create(
                 model=self.judge_model,
                 input=(
-                    f"Improve this RAG agent system prompt based on feedback.\n\n"
+                    f"Improve this RAG system prompt based on feedback.\n\n"
                     f"Current prompt:\n{current_prompt}\n\n"
-                    f"Judge feedback:\n{judge_feedback}\n\n"
+                    f"Feedback:\n{feedback}\n\n"
                     f"Return ONLY the improved prompt text."
                 ),
                 stream=False,
@@ -139,55 +168,13 @@ class OptimizerAgent:
             return {"prompt": new_prompt, "version": result.version}
 ```
 
-The `current_version` parameter provides optimistic locking — if another process updated the prompt between our read and write, the update will fail rather than silently overwrite. The judge model does double duty here: it scores answers *and* proposes prompt improvements based on its own feedback.
+### Score ledger and history tools
 
-### Testing and judging tools
-
-These tools close the feedback loop. `run_rag_test` calls into the inner RAG agent (which itself uses the Responses API with `file_search`), and `judge_answer` uses the Responses API with a separate, stronger model to score the output. This separation matters — the judge model should be more capable than the model being evaluated:
-
-```python
-class OptimizerAgent:
-    ...
-
-    def _register_tools(self):
-        ...
-
-        @tool
-        def run_rag_test(
-            question: Annotated[str, "The test question to ask the RAG agent"],
-            system_prompt: Annotated[str, "The system prompt to use"],
-        ) -> str:
-            """Run the inner RAG agent on a test question."""
-            return self.rag_agent.query(question, system_prompt)
-
-        @tool
-        def judge_answer(
-            question: Annotated[str, "The original question"],
-            expected: Annotated[str, "The expected answer"],
-            actual: Annotated[str, "The RAG agent's actual answer"],
-        ) -> dict:
-            """Score a RAG answer using LLM-as-judge."""
-            response = self.client.responses.create(
-                model=self.judge_model,
-                input=(
-                    f"Score the following answer on a scale of 0.0 to 1.0.\n\n"
-                    f"Question: {question}\nExpected: {expected}\nActual: {actual}\n\n"
-                    f'Respond with JSON: {{"score": <float>, "reasoning": "<explanation>"}}'
-                ),
-                stream=False,
-            )
-            return json.loads(response.output_text)
-```
-
-Notice the self-referential structure: the optimizer agent calls `run_rag_test`, which calls `responses.create()` on the inner agent, which triggers `file_search` on the vector store — three layers of Llama Stack APIs invoked from a single tool call.
-
-### Score ledger tools
-
-The optimizer also has `log_result` and `get_history` tools backed by a `ScoreLedger` — a simple SQLite table that maps `(prompt_id, version)` to scores and reasoning. The Prompts API stores the prompt text and versions; the ledger tracks how well each version performed. This separation keeps concerns clean — prompt storage is Llama Stack's job, evaluation tracking is ours. See the [full implementation](./prompt_optimizer_sketch.py) for details.
+The optimizer also has `log_result`, `get_history`, and `get_prompt` tools. `log_result` and `get_history` are backed by a `ScoreLedger` — a simple SQLite table that maps `(prompt_id, version)` to scores and reasoning. `get_prompt` reads prompt versions from the Prompts API. The Prompts API stores text; the ledger tracks how well each version performed. See the [full implementation](./prompt_optimizer_sketch.py) for details.
 
 ## The Optimization Loop
 
-This is where everything comes together. Each iteration, we give the optimizer a high-level instruction ("improve this RAG agent's system prompt") and let it decide which tools to call. The inner `while True` loop is the standard Responses API agentic pattern — keep calling `responses.create()` until the model stops emitting tool calls. The outer `for` loop runs multiple iterations, and the `conversation` parameter ensures the optimizer's reasoning accumulates across all of them:
+This is where everything comes together. Each iteration, we give the optimizer a high-level instruction and let it drive the tool calls. The `while True` loop is the standard Responses API agentic pattern — keep calling `responses.create()` until the model stops emitting tool calls:
 
 ```python
 class OptimizerAgent:
@@ -197,12 +184,12 @@ class OptimizerAgent:
         for iteration in range(max_iterations):
             inputs = [{"role": "user", "content": optimization_prompt}]
 
-            # Agentic loop: keep going until the model stops calling tools
+            # Agentic loop: the optimizer LLM decides tool order
             while True:
                 response = self.client.responses.create(
                     model=self.model,
                     input=inputs,
-                    tools=tool_schemas,
+                    tools=[fn_to_tool_schema(fn) for fn in _tool_registry.values()],
                     conversation=self.conversation_id,
                     stream=False,
                 )
@@ -227,7 +214,7 @@ class OptimizerAgent:
                     )
 ```
 
-In a typical iteration, the optimizer might make 10+ tool calls: `get_history` to review past scores, `get_prompt` to read the current prompt, then `run_rag_test` and `judge_answer` for each test case to see how the current prompt performs. Based on the judge's feedback, it calls `propose_new_prompt` with the current prompt and the aggregated feedback — the judge model then generates an improved version and saves it via the Prompts API. Finally, `log_result` records the score.
+In a typical iteration, the optimizer calls `get_history` to review past scores, `get_prompt` to read the current prompt, then `evaluate_prompt` which deterministically runs all test cases and judges every response. Based on the evaluation results, it calls `log_result` to record the score, then `propose_new_prompt` with the feedback — the judge model generates an improved version and saves it via the Prompts API. The optimizer LLM is free to deviate from this order — it might re-evaluate after proposing, or skip history on the first iteration — but the individual tools guarantee completeness.
 
 The `conversation` parameter is what makes this an optimization loop rather than isolated attempts. Without it, each iteration starts from scratch. With it, Llama Stack persists all turns server-side, so by iteration 3, the optimizer can look back and reason: "v1 scored 0.4 because answers were too vague, v2 scored 0.7 after I added citation instructions, let me try adding format constraints for v3."
 

@@ -7,9 +7,9 @@
 """
 Self-improving RAG agent using Llama Stack APIs.
 
-An RL-style optimization loop where an outer "optimizer agent" iteratively
-improves the system prompt of an inner RAG agent — using Llama Stack's own
-APIs (Prompts, Responses, Conversations, Chat Completions) as tools.
+An RL-style optimization loop where an OptimizerAgent uses the Responses API
+agentic loop to iteratively improve an inner RAG agent's system prompt.
+The optimizer LLM decides tool order; each tool is internally deterministic.
 """
 
 import inspect
@@ -18,6 +18,7 @@ import sqlite3
 from typing import Annotated, get_args, get_origin
 
 from llama_stack_client import LlamaStackClient
+
 
 # ---------------------------------------------------------------------------
 # Tool schema generation — derives OpenAI function tool definitions from
@@ -219,18 +220,49 @@ class OptimizerAgent:
             return {"prompt": result.prompt, "version": result.version}
 
         @tool
+        def evaluate_prompt(
+            system_prompt: Annotated[str, "The system prompt to evaluate"],
+        ) -> dict:
+            """Run the RAG agent on ALL test cases, judge every response, and return per-case scores and an overall average. This is deterministic — every test case is always evaluated."""
+            results = []
+            for tc in self.test_cases:
+                answer = self.rag_agent.query(tc["question"], system_prompt)
+                judgment = self.client.responses.create(
+                    model=self.judge_model,
+                    input=(
+                        f"Score the following answer on a scale of 0.0 to 1.0.\n\n"
+                        f"Question: {tc['question']}\n"
+                        f"Expected answer: {tc['expected']}\n"
+                        f"Actual answer: {answer}\n\n"
+                        f'Respond with JSON: {{"score": <float>, "reasoning": "<brief explanation>"}}'
+                    ),
+                    stream=False,
+                )
+                score_data = json.loads(judgment.output_text)
+                results.append({
+                    "question": tc["question"],
+                    "expected": tc["expected"],
+                    "actual": answer,
+                    "score": score_data["score"],
+                    "reasoning": score_data["reasoning"],
+                })
+
+            avg_score = sum(r["score"] for r in results) / len(results)
+            return {"results": results, "average_score": avg_score}
+
+        @tool
         def propose_new_prompt(
             current_prompt: Annotated[str, "The current system prompt"],
-            judge_feedback: Annotated[str, "Judge feedback on the current prompt's performance"],
-            current_version: Annotated[int, "Current version number (for optimistic locking)"],
+            feedback: Annotated[str, "Judge feedback from evaluate_prompt"],
+            current_version: Annotated[int, "Current prompt version (for optimistic locking)"],
         ) -> dict:
-            """Use the judge model to propose an improved system prompt based on feedback, then save it. Returns the new prompt text and version."""
+            """Use the judge model to propose an improved system prompt based on evaluation feedback, then save it via the Prompts API."""
             response = self.client.responses.create(
                 model=self.judge_model,
                 input=(
                     f"You are improving a RAG agent's system prompt based on evaluation feedback.\n\n"
                     f"Current prompt:\n{current_prompt}\n\n"
-                    f"Judge feedback:\n{judge_feedback}\n\n"
+                    f"Judge feedback:\n{feedback}\n\n"
                     f"Write an improved system prompt that addresses the feedback. "
                     f"Return ONLY the new prompt text, nothing else."
                 ),
@@ -243,34 +275,6 @@ class OptimizerAgent:
                 version=current_version,
             )
             return {"prompt": new_prompt, "version": result.version}
-
-        @tool
-        def run_rag_test(
-            question: Annotated[str, "The test question to ask the RAG agent"],
-            system_prompt: Annotated[str, "The system prompt to use"],
-        ) -> str:
-            """Run the inner RAG agent on a test question. Returns the agent's answer."""
-            return self.rag_agent.query(question, system_prompt)
-
-        @tool
-        def judge_answer(
-            question: Annotated[str, "The original question"],
-            expected: Annotated[str, "The expected answer"],
-            actual: Annotated[str, "The RAG agent's actual answer"],
-        ) -> dict:
-            """Score a RAG answer using LLM-as-judge. Returns {score, reasoning}."""
-            response = self.client.responses.create(
-                model=self.judge_model,
-                input=(
-                    f"Score the following answer on a scale of 0.0 to 1.0.\n\n"
-                    f"Question: {question}\n"
-                    f"Expected answer: {expected}\n"
-                    f"Actual answer: {actual}\n\n"
-                    f'Respond with JSON: {{"score": <float>, "reasoning": "<brief explanation>"}}'
-                ),
-                stream=False,
-            )
-            return json.loads(response.output_text)
 
         @tool
         def log_result(
@@ -304,11 +308,11 @@ class OptimizerAgent:
                 f"You are optimizing a RAG agent's system prompt.\n\n"
                 f"Test cases the RAG agent must answer well:\n{test_cases_str}\n\n"
                 f"Your workflow:\n"
-                f"1. Call get_history to see past scores\n"
+                f"1. Call get_history to review past scores\n"
                 f"2. Call get_prompt to read the current prompt\n"
-                f"3. Propose an improved prompt and call update_prompt\n"
-                f"4. For each test case, call run_rag_test, then judge_answer\n"
-                f"5. Average the scores and call log_result\n\n"
+                f"3. Call evaluate_prompt to test it against ALL test cases\n"
+                f"4. Call log_result to record the score\n"
+                f"5. Call propose_new_prompt with the feedback to generate an improved version\n\n"
                 f"Focus on: using retrieved context, being concise, citing sources."
             )
 
