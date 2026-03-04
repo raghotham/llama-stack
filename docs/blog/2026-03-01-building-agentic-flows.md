@@ -36,7 +36,7 @@ The optimizer uses the Responses API with client-side function tools that call b
 │    2. get_prompt()         → read current prompt    │
 │    3. run_rag_test()       → test the RAG agent     │
 │    4. judge_answer()       → score with LLM judge   │
-│    5. update_prompt()      → improve based on judge  │
+│    5. propose_new_prompt() → improve based on judge  │
 │    6. log_result()         → record the score       │
 │                                                     │
 │  Conversation tracks reasoning across iterations    │
@@ -99,7 +99,7 @@ The tools fall into three categories:
 
 ### Prompt management tools (Prompts API)
 
-The optimizer reads and writes system prompt versions through the Prompts API. Each version is immutable — calling `update` creates a new version rather than overwriting the old one. This gives us a full audit trail of every prompt the optimizer tried:
+The optimizer reads prompt versions through the Prompts API and proposes improvements using the judge model. `propose_new_prompt` is the key tool — it takes the current prompt and judge feedback, asks the judge model to generate an improved version, and saves it via the Prompts API. Each version is immutable, so we get a full audit trail of every prompt the optimizer tried:
 
 ```python
 class OptimizerAgent:
@@ -108,30 +108,38 @@ class OptimizerAgent:
     def _register_tools(self):
 
         @tool
-        def update_prompt(
-            new_prompt: Annotated[str, "The improved system prompt text"],
-            current_version: Annotated[
-                int, "Current version number (for optimistic locking)"
-            ],
-        ) -> dict:
-            """Create a new version of the system prompt."""
-            result = self.client.prompts.update(
-                self.prompt_id,
-                prompt=new_prompt,
-                version=current_version,
-            )
-            return {"prompt_id": result.prompt_id, "version": result.version}
-
-        @tool
         def get_prompt(
             version: Annotated[int | None, "Specific version to fetch"] = None,
         ) -> dict:
             """Fetch the current system prompt text and version."""
             result = self.client.prompts.retrieve(self.prompt_id, version=version)
             return {"prompt": result.prompt, "version": result.version}
+
+        @tool
+        def propose_new_prompt(
+            current_prompt: Annotated[str, "The current system prompt"],
+            judge_feedback: Annotated[str, "Judge feedback on performance"],
+            current_version: Annotated[int, "Current version number"],
+        ) -> dict:
+            """Use the judge model to propose an improved prompt based on feedback, then save it."""
+            response = self.client.responses.create(
+                model=self.judge_model,
+                input=(
+                    f"Improve this RAG agent system prompt based on feedback.\n\n"
+                    f"Current prompt:\n{current_prompt}\n\n"
+                    f"Judge feedback:\n{judge_feedback}\n\n"
+                    f"Return ONLY the improved prompt text."
+                ),
+                stream=False,
+            )
+            new_prompt = response.output_text.strip()
+            result = self.client.prompts.update(
+                self.prompt_id, prompt=new_prompt, version=current_version
+            )
+            return {"prompt": new_prompt, "version": result.version}
 ```
 
-The `current_version` parameter provides optimistic locking — if another process updated the prompt between our read and write, the update will fail rather than silently overwrite.
+The `current_version` parameter provides optimistic locking — if another process updated the prompt between our read and write, the update will fail rather than silently overwrite. The judge model does double duty here: it scores answers *and* proposes prompt improvements based on its own feedback.
 
 ### Testing and judging tools
 
@@ -219,7 +227,7 @@ class OptimizerAgent:
                     )
 ```
 
-In a typical iteration, the optimizer might make 10+ tool calls: `get_history` to review past scores, `get_prompt` to read the current prompt, then `run_rag_test` and `judge_answer` for each test case to see how the current prompt performs. Based on the judge's feedback, it calls `update_prompt` to write an improved version, and finally `log_result` to record the score. The judge's reasoning drives the updates — if it says "the answer lacked source citations," the optimizer knows to add citation instructions to the next prompt version.
+In a typical iteration, the optimizer might make 10+ tool calls: `get_history` to review past scores, `get_prompt` to read the current prompt, then `run_rag_test` and `judge_answer` for each test case to see how the current prompt performs. Based on the judge's feedback, it calls `propose_new_prompt` with the current prompt and the aggregated feedback — the judge model then generates an improved version and saves it via the Prompts API. Finally, `log_result` records the score.
 
 The `conversation` parameter is what makes this an optimization loop rather than isolated attempts. Without it, each iteration starts from scratch. With it, Llama Stack persists all turns server-side, so by iteration 3, the optimizer can look back and reason: "v1 scored 0.4 because answers were too vague, v2 scored 0.7 after I added citation instructions, let me try adding format constraints for v3."
 

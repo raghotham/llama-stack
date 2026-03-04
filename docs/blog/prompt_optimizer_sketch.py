@@ -211,25 +211,38 @@ class OptimizerAgent:
         Schemas are auto-derived from type hints and docstrings."""
 
         @tool
-        def update_prompt(
-            new_prompt: Annotated[str, "The improved system prompt text"],
-            current_version: Annotated[int, "Current version number (for optimistic locking)"],
-        ) -> dict:
-            """Create a new version of the system prompt. Returns the new version number."""
-            result = self.client.prompts.update(
-                self.prompt_id,
-                prompt=new_prompt,
-                version=current_version,
-            )
-            return {"prompt_id": result.prompt_id, "version": result.version}
-
-        @tool
         def get_prompt(
             version: Annotated[int | None, "Specific version to fetch"] = None,
         ) -> dict:
             """Fetch the current system prompt text and version."""
             result = self.client.prompts.retrieve(self.prompt_id, version=version)
             return {"prompt": result.prompt, "version": result.version}
+
+        @tool
+        def propose_new_prompt(
+            current_prompt: Annotated[str, "The current system prompt"],
+            judge_feedback: Annotated[str, "Judge feedback on the current prompt's performance"],
+            current_version: Annotated[int, "Current version number (for optimistic locking)"],
+        ) -> dict:
+            """Use the judge model to propose an improved system prompt based on feedback, then save it. Returns the new prompt text and version."""
+            response = self.client.responses.create(
+                model=self.judge_model,
+                input=(
+                    f"You are improving a RAG agent's system prompt based on evaluation feedback.\n\n"
+                    f"Current prompt:\n{current_prompt}\n\n"
+                    f"Judge feedback:\n{judge_feedback}\n\n"
+                    f"Write an improved system prompt that addresses the feedback. "
+                    f"Return ONLY the new prompt text, nothing else."
+                ),
+                stream=False,
+            )
+            new_prompt = response.output_text.strip()
+            result = self.client.prompts.update(
+                self.prompt_id,
+                prompt=new_prompt,
+                version=current_version,
+            )
+            return {"prompt": new_prompt, "version": result.version}
 
         @tool
         def run_rag_test(
