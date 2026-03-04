@@ -246,20 +246,18 @@ class OptimizerAgent:
             actual: Annotated[str, "The RAG agent's actual answer"],
         ) -> dict:
             """Score a RAG answer using LLM-as-judge. Returns {score, reasoning}."""
-            response = self.client.chat.completions.create(
+            response = self.client.responses.create(
                 model=self.judge_model,
-                messages=[{
-                    "role": "user",
-                    "content": (
-                        f"Score the following answer on a scale of 0.0 to 1.0.\n\n"
-                        f"Question: {question}\n"
-                        f"Expected answer: {expected}\n"
-                        f"Actual answer: {actual}\n\n"
-                        f'Respond with JSON: {{"score": <float>, "reasoning": "<brief explanation>"}}'
-                    ),
-                }],
+                input=(
+                    f"Score the following answer on a scale of 0.0 to 1.0.\n\n"
+                    f"Question: {question}\n"
+                    f"Expected answer: {expected}\n"
+                    f"Actual answer: {actual}\n\n"
+                    f'Respond with JSON: {{"score": <float>, "reasoning": "<brief explanation>"}}'
+                ),
+                stream=False,
             )
-            return json.loads(response.choices[0].message.content)
+            return json.loads(response.output_text)
 
         @tool
         def log_result(

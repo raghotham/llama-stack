@@ -25,7 +25,7 @@ The system has two agents, each built on Llama Stack but serving very different 
 - **RAGAgent** (inner): A question-answering agent that uses `file_search` to retrieve documents from a vector store and generate answers. Its system prompt controls how it uses context, cites sources, and structures responses — and that system prompt is the thing being optimized.
 - **OptimizerAgent** (outer): An RL-style agent that iteratively proposes better system prompts, runs the RAG agent against a test suite, scores the results with an LLM judge, and records what worked and what didn't.
 
-The optimizer uses the Responses API with client-side function tools that call back into Llama Stack's Prompts API, Responses API, and Chat Completions API. The Conversations API ties it all together — by passing a `conversation` ID to each `responses.create()` call, the optimizer's full reasoning history persists across iterations. It remembers which prompts it already tried, what scores they received, and what its reasoning was, so it can make progressively better decisions.
+The optimizer uses the Responses API with client-side function tools that call back into Llama Stack's Prompts API and Responses API. The Conversations API ties it all together — by passing a `conversation` ID to each `responses.create()` call, the optimizer's full reasoning history persists across iterations. It remembers which prompts it already tried, what scores they received, and what its reasoning was, so it can make progressively better decisions.
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -135,7 +135,7 @@ The `current_version` parameter provides optimistic locking — if another proce
 
 ### Testing and judging tools
 
-These tools close the feedback loop. `run_rag_test` calls into the inner RAG agent (which itself uses the Responses API with `file_search`), and `judge_answer` uses a separate, stronger model via Chat Completions to score the output. This separation matters — the judge model should be more capable than the model being evaluated:
+These tools close the feedback loop. `run_rag_test` calls into the inner RAG agent (which itself uses the Responses API with `file_search`), and `judge_answer` uses the Responses API with a separate, stronger model to score the output. This separation matters — the judge model should be more capable than the model being evaluated:
 
 ```python
 class OptimizerAgent:
@@ -159,20 +159,16 @@ class OptimizerAgent:
             actual: Annotated[str, "The RAG agent's actual answer"],
         ) -> dict:
             """Score a RAG answer using LLM-as-judge."""
-            response = self.client.chat.completions.create(
+            response = self.client.responses.create(
                 model=self.judge_model,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": (
-                            f"Score the following answer on a scale of 0.0 to 1.0.\n\n"
-                            f"Question: {question}\nExpected: {expected}\nActual: {actual}\n\n"
-                            f'Respond with JSON: {{"score": <float>, "reasoning": "<explanation>"}}'
-                        ),
-                    }
-                ],
+                input=(
+                    f"Score the following answer on a scale of 0.0 to 1.0.\n\n"
+                    f"Question: {question}\nExpected: {expected}\nActual: {actual}\n\n"
+                    f'Respond with JSON: {{"score": <float>, "reasoning": "<explanation>"}}'
+                ),
+                stream=False,
             )
-            return json.loads(response.choices[0].message.content)
+            return json.loads(response.output_text)
 ```
 
 Notice the self-referential structure: the optimizer agent calls `run_rag_test`, which calls `responses.create()` on the inner agent, which triggers `file_search` on the vector store — three layers of Llama Stack APIs invoked from a single tool call.
