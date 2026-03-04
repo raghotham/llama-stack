@@ -2,10 +2,10 @@
 slug: building-agentic-flows-with-conversations-and-responses
 title: "Building a Self-Improving Agent with Llama Stack"
 authors:
-  - name: Llama Stack Team
-    title: Core Team
-    url: https://github.com/llamastack
-    image_url: https://llamastack.github.io/img/llama-stack-logo.png
+  - name: Raghotham Murthy
+    title: Llama Stack Team
+    url: https://github.com/raghotham
+    image_url: https://github.com/raghotham.png
 tags: [agents, responses-api, conversations, prompts, tutorial]
 date: 2026-03-01
 ---
@@ -243,7 +243,7 @@ ollama pull gpt-oss:20b
 uv run --with llama-stack llama stack run ollama
 ```
 
-Then set up the vector store with some documents for the RAG agent to search over, create the initial prompt, and run the optimizer:
+Then set up the vector store with some documents for the RAG agent to search over, create the initial prompt, and run the optimizer. You can use any text file — here we use the [Llama 3.1 model card](https://github.com/meta-llama/llama-models/blob/main/models/llama3_1/MODEL_CARD.md) as an example:
 
 ```python
 from llama_stack_client import LlamaStackClient
@@ -318,8 +318,8 @@ The pattern here — an LLM-driven loop that uses Llama Stack APIs as tools — 
 - **Multiple RAG agents** with different vector stores, optimized in parallel — the optimizer could manage a fleet of specialized agents
 
 To learn more:
-- [Responses API documentation](/docs/building_applications/agent)
-- [Conversations API documentation](/docs/building_applications/agent)
-- [Prompts API documentation](/docs/providers)
+- [Responses API documentation](/docs/building_applications/responses_vs_agents)
+- [Conversations API documentation](/docs/api-openai/conformance#conversations)
+- [OpenAI API compatibility](/docs/api-openai)
 - [Vector Stores documentation](/docs/building_applications/rag)
 - [Join our Discord](https://discord.gg/llama-stack)

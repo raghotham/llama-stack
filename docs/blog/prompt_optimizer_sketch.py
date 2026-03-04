@@ -352,7 +352,9 @@ if __name__ == "__main__":
         {"question": "What languages does Llama 3.1 support?", "expected": "English, German, French, Italian, Portuguese, Hindi, Spanish, Thai"},
     ]
 
-    # Create the inner RAG agent with a vector store from local files
+    # Create the inner RAG agent with a vector store from local files.
+    # Download the Llama 3.1 model card from:
+    # https://github.com/meta-llama/llama-models/blob/main/models/llama3_1/MODEL_CARD.md
     rag_agent = RAGAgent.from_files(
         client, model=MODEL, name="llama-docs", file_paths=["llama3_model_card.txt"],
     )
