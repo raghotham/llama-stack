@@ -34,9 +34,9 @@ The optimizer uses the Responses API with client-side function tools that call b
 │  for each iteration:                                │
 │    1. get_history()        → read past scores       │
 │    2. get_prompt()         → read current prompt    │
-│    3. update_prompt()      → write improved prompt  │
-│    4. run_rag_test()       → test the RAG agent     │
-│    5. judge_answer()       → score with LLM judge   │
+│    3. run_rag_test()       → test the RAG agent     │
+│    4. judge_answer()       → score with LLM judge   │
+│    5. update_prompt()      → improve based on judge  │
 │    6. log_result()         → record the score       │
 │                                                     │
 │  Conversation tracks reasoning across iterations    │
@@ -219,7 +219,7 @@ class OptimizerAgent:
                     )
 ```
 
-In a typical iteration, the optimizer might make 10+ tool calls: `get_history` to review past scores, `get_prompt` to read the current prompt, `update_prompt` to write an improved version, then `run_rag_test` and `judge_answer` for each test case, and finally `log_result` to record the average score. The model decides the order — sometimes it checks history first, sometimes it skips straight to testing if it already has an idea.
+In a typical iteration, the optimizer might make 10+ tool calls: `get_history` to review past scores, `get_prompt` to read the current prompt, then `run_rag_test` and `judge_answer` for each test case to see how the current prompt performs. Based on the judge's feedback, it calls `update_prompt` to write an improved version, and finally `log_result` to record the score. The judge's reasoning drives the updates — if it says "the answer lacked source citations," the optimizer knows to add citation instructions to the next prompt version.
 
 The `conversation` parameter is what makes this an optimization loop rather than isolated attempts. Without it, each iteration starts from scratch. With it, Llama Stack persists all turns server-side, so by iteration 3, the optimizer can look back and reason: "v1 scored 0.4 because answers were too vague, v2 scored 0.7 after I added citation instructions, let me try adding format constraints for v3."
 
