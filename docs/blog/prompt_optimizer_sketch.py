@@ -5,16 +5,23 @@
 # the root directory of this source tree.
 
 """
-Self-improving RAG agent using Llama Stack APIs.
+Self-improving research agent using Llama Stack APIs.
 
-An RL-style optimization loop where an OptimizerAgent uses the Responses API
-agentic loop to iteratively improve an inner RAG agent's system prompt.
-The optimizer LLM decides tool order; each tool is internally deterministic.
+A deterministic optimization loop iteratively improves the system prompt of an
+inner ResearchAgent.  The research agent is the agentic component — it uses the
+Responses API ``while True`` loop with server-side ``file_search`` and
+client-side function tools (read_local_file, index_document, list_local_files)
+to answer questions from an internal engineering knowledge base.
+
+The outer optimizer is a plain Python ``for`` loop — no LLM-driven tool
+selection, no class, just deterministic orchestration.
 """
 
 import inspect
 import json
+import os
 import sqlite3
+import time
 from typing import Annotated, get_args, get_origin
 
 from llama_stack_client import LlamaStackClient
@@ -33,14 +40,6 @@ PYTHON_TYPE_TO_JSON = {
     list: "array",
     dict: "object",
 }
-
-_tool_registry: dict[str, callable] = {}
-
-
-def tool(fn):
-    """Decorator: register a function as a tool the optimizer agent can call."""
-    _tool_registry[fn.__name__] = fn
-    return fn
 
 
 def fn_to_tool_schema(fn) -> dict:
@@ -90,16 +89,33 @@ def fn_to_tool_schema(fn) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# RAGAgent — the inner agent whose system prompt is being optimized.
-# Uses Responses API with file_search over a vector store.
+# ResearchAgent — the inner agentic component.  Uses the Responses API
+# ``while True`` loop with server-side file_search and client-side function
+# tools to answer questions from an internal engineering knowledge base.
+# The agent actively curates the knowledge base: it can discover local files,
+# read them, and index them into the vector store for future queries.
 # ---------------------------------------------------------------------------
 
 
-class RAGAgent:
-    def __init__(self, client: LlamaStackClient, model: str, vector_store_id: str):
+class ResearchAgent:
+    def __init__(
+        self,
+        client: LlamaStackClient,
+        model: str,
+        vector_store_id: str,
+        local_docs_dir: str | None = None,
+    ):
         self.client = client
         self.model = model
         self.vector_store_id = vector_store_id
+        self.local_docs_dir = local_docs_dir
+
+        # Client-side function tools the agent can call
+        self._tools = {
+            "read_local_file": self._read_local_file,
+            "index_document": self._index_document,
+            "list_local_files": self._list_local_files,
+        }
 
     @classmethod
     def from_files(
@@ -108,12 +124,11 @@ class RAGAgent:
         model: str,
         name: str,
         file_paths: list[str],
+        local_docs_dir: str | None = None,
         embedding_model: str = "all-MiniLM-L6-v2",
         embedding_dimension: int = 384,
-    ) -> "RAGAgent":
-        """Create a RAGAgent with a new vector store populated from local files."""
-        import time
-
+    ) -> "ResearchAgent":
+        """Create a ResearchAgent with a new vector store populated from files."""
         vector_store = client.vector_stores.create(
             name=name,
             embedding_model=embedding_model,
@@ -131,18 +146,86 @@ class RAGAgent:
                     vector_store_id=vector_store.id, file_id=file.id,
                 )
 
-        return cls(client, model, vector_store.id)
+        return cls(client, model, vector_store.id, local_docs_dir)
+
+    # -- Client-side function tools ------------------------------------------
+
+    @staticmethod
+    def _read_local_file(
+        path: Annotated[str, "Path to the local file to read"],
+    ) -> str:
+        """Read an unindexed local file and return its contents."""
+        with open(path) as f:
+            return f.read()
+
+    def _index_document(
+        self,
+        file_path: Annotated[str, "Path to the local file to index"],
+    ) -> str:
+        """Upload a local file to the vector store so it becomes searchable."""
+        file = self.client.files.create(
+            file=open(file_path, "rb"), purpose="assistants",
+        )
+        attach = self.client.vector_stores.files.create(
+            vector_store_id=self.vector_store_id, file_id=file.id,
+        )
+        while attach.status == "in_progress":
+            time.sleep(0.5)
+            attach = self.client.vector_stores.files.retrieve(
+                vector_store_id=self.vector_store_id, file_id=file.id,
+            )
+        return f"Indexed {file_path} (file_id={file.id}, status={attach.status})"
+
+    @staticmethod
+    def _list_local_files(
+        directory: Annotated[str, "Directory to list files from"],
+    ) -> str:
+        """List .md and .txt files in a directory that could be indexed."""
+        files = [
+            os.path.join(directory, f)
+            for f in sorted(os.listdir(directory))
+            if f.endswith((".md", ".txt"))
+        ]
+        return json.dumps(files)
+
+    # -- Agentic query loop --------------------------------------------------
+
+    def _tool_schemas(self) -> list[dict]:
+        """Return tool schemas for file_search + client-side function tools."""
+        return [
+            {"type": "file_search", "vector_store_ids": [self.vector_store_id]},
+            *[fn_to_tool_schema(fn) for fn in self._tools.values()],
+        ]
 
     def query(self, question: str, system_prompt: str) -> str:
-        """Run a RAG query: search the vector store and generate an answer."""
-        response = self.client.responses.create(
-            model=self.model,
-            input=question,
-            instructions=system_prompt,
-            tools=[{"type": "file_search", "vector_store_ids": [self.vector_store_id]}],
-            stream=False,
-        )
-        return response.output_text
+        """Run an agentic research loop: search, read local files, index, repeat."""
+        inputs = question
+        tools = self._tool_schemas()
+
+        while True:
+            response = self.client.responses.create(
+                model=self.model,
+                input=inputs,
+                instructions=system_prompt,
+                tools=tools,
+                stream=False,
+            )
+
+            # Collect any function calls (file_search is handled server-side)
+            function_calls = [o for o in response.output if o.type == "function_call"]
+            if not function_calls:
+                return response.output_text
+
+            # Execute each function call and feed results back
+            inputs = []
+            for fc in function_calls:
+                result = self._tools[fc.name](**json.loads(fc.arguments))
+                inputs.append(fc)
+                inputs.append({
+                    "type": "function_call_output",
+                    "call_id": fc.call_id,
+                    "output": result if isinstance(result, str) else json.dumps(result),
+                })
 
 
 # ---------------------------------------------------------------------------
@@ -163,194 +246,140 @@ class ScoreLedger:
             )
         """)
 
-    def log(self, prompt_id: str, version: int, score: float, reasoning: str) -> str:
+    def log(self, prompt_id: str, version: int, score: float, reasoning: str):
         self.db.execute(
             "INSERT INTO results (prompt_id, version, score, reasoning) VALUES (?, ?, ?, ?)",
             (prompt_id, version, score, reasoning),
         )
         self.db.commit()
-        return f"Logged: version={version}, score={score}"
 
     def history(self, prompt_id: str) -> list[dict]:
         rows = self.db.execute(
             "SELECT version, score, reasoning, timestamp FROM results WHERE prompt_id = ? ORDER BY version",
             (prompt_id,),
         ).fetchall()
-        return [{"version": r[0], "score": r[1], "reasoning": r[2], "timestamp": r[3]} for r in rows]
+        return [
+            {"version": r[0], "score": r[1], "reasoning": r[2], "timestamp": r[3]}
+            for r in rows
+        ]
 
 
 # ---------------------------------------------------------------------------
-# OptimizerAgent — the outer RL agent that iteratively improves the RAG
-# agent's system prompt. Uses Responses API with function tools that call
-# Llama Stack APIs and the score ledger.
+# Optimization functions — deterministic orchestration, not an agent.
 # ---------------------------------------------------------------------------
 
 
-class OptimizerAgent:
-    def __init__(
-        self,
-        client: LlamaStackClient,
-        model: str,
-        judge_model: str,
-        rag_agent: RAGAgent,
-        ledger: ScoreLedger,
-        prompt_id: str,
-        test_cases: list[dict],
-    ):
-        self.client = client
-        self.model = model
-        self.judge_model = judge_model
-        self.rag_agent = rag_agent
-        self.ledger = ledger
-        self.prompt_id = prompt_id
-        self.test_cases = test_cases
-        self.conversation_id = client.conversations.create().id
-        self._register_tools()
+def evaluate_prompt(
+    client: LlamaStackClient,
+    judge_model: str,
+    research_agent: ResearchAgent,
+    system_prompt: str,
+    test_cases: list[dict],
+) -> dict:
+    """Run the research agent on all test cases and judge each answer."""
+    results = []
+    for tc in test_cases:
+        answer = research_agent.query(tc["question"], system_prompt)
+        judgment = client.responses.create(
+            model=judge_model,
+            input=(
+                f"Score the following answer on a scale of 0.0 to 1.0.\n\n"
+                f"Question: {tc['question']}\n"
+                f"Expected answer: {tc['expected']}\n"
+                f"Actual answer: {answer}\n\n"
+                f'Respond with JSON: {{"score": <float>, "reasoning": "<brief explanation>"}}'
+            ),
+            stream=False,
+        )
+        score_data = json.loads(judgment.output_text)
+        results.append({
+            "question": tc["question"],
+            "expected": tc["expected"],
+            "actual": answer,
+            "score": score_data["score"],
+            "reasoning": score_data["reasoning"],
+        })
 
-    def _register_tools(self):
-        """Register function tools that the optimizer agent can call.
-        Schemas are auto-derived from type hints and docstrings."""
+    avg_score = sum(r["score"] for r in results) / len(results)
+    return {"results": results, "average_score": avg_score}
 
-        @tool
-        def get_prompt(
-            version: Annotated[int | None, "Specific version to fetch"] = None,
-        ) -> dict:
-            """Fetch the current system prompt text and version."""
-            result = self.client.prompts.retrieve(self.prompt_id, version=version)
-            return {"prompt": result.prompt, "version": result.version}
 
-        @tool
-        def evaluate_prompt(
-            system_prompt: Annotated[str, "The system prompt to evaluate"],
-        ) -> dict:
-            """Run the RAG agent on ALL test cases, judge every response, and return per-case scores and an overall average. This is deterministic — every test case is always evaluated."""
-            results = []
-            for tc in self.test_cases:
-                answer = self.rag_agent.query(tc["question"], system_prompt)
-                judgment = self.client.responses.create(
-                    model=self.judge_model,
-                    input=(
-                        f"Score the following answer on a scale of 0.0 to 1.0.\n\n"
-                        f"Question: {tc['question']}\n"
-                        f"Expected answer: {tc['expected']}\n"
-                        f"Actual answer: {answer}\n\n"
-                        f'Respond with JSON: {{"score": <float>, "reasoning": "<brief explanation>"}}'
-                    ),
-                    stream=False,
-                )
-                score_data = json.loads(judgment.output_text)
-                results.append({
-                    "question": tc["question"],
-                    "expected": tc["expected"],
-                    "actual": answer,
-                    "score": score_data["score"],
-                    "reasoning": score_data["reasoning"],
-                })
+def propose_new_prompt(
+    client: LlamaStackClient,
+    judge_model: str,
+    current_prompt: str,
+    feedback: str,
+) -> str:
+    """Use the judge model to generate an improved system prompt."""
+    response = client.responses.create(
+        model=judge_model,
+        input=(
+            f"You are improving a research agent's system prompt based on evaluation feedback.\n\n"
+            f"Current prompt:\n{current_prompt}\n\n"
+            f"Judge feedback:\n{feedback}\n\n"
+            f"Write an improved system prompt that addresses the feedback. "
+            f"Return ONLY the new prompt text, nothing else."
+        ),
+        stream=False,
+    )
+    return response.output_text.strip()
 
-            avg_score = sum(r["score"] for r in results) / len(results)
-            return {"results": results, "average_score": avg_score}
 
-        @tool
-        def propose_new_prompt(
-            current_prompt: Annotated[str, "The current system prompt"],
-            feedback: Annotated[str, "Judge feedback from evaluate_prompt"],
-            current_version: Annotated[int, "Current prompt version (for optimistic locking)"],
-        ) -> dict:
-            """Use the judge model to propose an improved system prompt based on evaluation feedback, then save it via the Prompts API."""
-            response = self.client.responses.create(
-                model=self.judge_model,
-                input=(
-                    f"You are improving a RAG agent's system prompt based on evaluation feedback.\n\n"
-                    f"Current prompt:\n{current_prompt}\n\n"
-                    f"Judge feedback:\n{feedback}\n\n"
-                    f"Write an improved system prompt that addresses the feedback. "
-                    f"Return ONLY the new prompt text, nothing else."
-                ),
-                stream=False,
-            )
-            new_prompt = response.output_text.strip()
-            result = self.client.prompts.update(
-                self.prompt_id,
-                prompt=new_prompt,
-                version=current_version,
-            )
-            return {"prompt": new_prompt, "version": result.version}
+def optimize_prompt(
+    client: LlamaStackClient,
+    judge_model: str,
+    research_agent: ResearchAgent,
+    ledger: ScoreLedger,
+    prompt_id: str,
+    test_cases: list[dict],
+    max_iterations: int = 5,
+):
+    """Deterministic optimization loop — no LLM-driven tool selection."""
+    for iteration in range(max_iterations):
+        print(f"\n{'=' * 60}")
+        print(f"Iteration {iteration + 1}/{max_iterations}")
+        print(f"{'=' * 60}")
 
-        @tool
-        def log_result(
-            version: Annotated[int, "The prompt version that was tested"],
-            score: Annotated[float, "The average score across test cases"],
-            reasoning: Annotated[str, "Summary of why this score was achieved"],
-        ) -> str:
-            """Log a prompt version's score to the results ledger."""
-            return self.ledger.log(self.prompt_id, version, score, reasoning)
+        # 1. Read current prompt
+        current = client.prompts.retrieve(prompt_id)
+        print(f"  Current prompt (v{current.version}): {current.prompt[:80]}...")
 
-        @tool
-        def get_history() -> list[dict]:
-            """Get the full optimization history: all prompt versions and their scores."""
-            return self.ledger.history(self.prompt_id)
+        # 2. Run research agent on all test cases and judge answers
+        eval_result = evaluate_prompt(
+            client, judge_model, research_agent, current.prompt, test_cases,
+        )
+        print(f"  Average score: {eval_result['average_score']:.2f}")
 
-    def _execute_tool_call(self, name: str, arguments: str) -> str:
-        args = json.loads(arguments)
-        result = _tool_registry[name](**args)
-        return json.dumps(result) if not isinstance(result, str) else result
+        # 3. Log scores to ledger
+        feedback_summary = "; ".join(
+            f"Q: {r['question'][:40]}… → {r['score']:.1f} ({r['reasoning']})"
+            for r in eval_result["results"]
+        )
+        ledger.log(prompt_id, current.version, eval_result["average_score"], feedback_summary)
 
-    def run(self, max_iterations: int = 5):
-        """Run the optimization loop for max_iterations rounds."""
-        test_cases_str = json.dumps(self.test_cases, indent=2)
+        # 4. Propose improved prompt using judge model
+        new_prompt = propose_new_prompt(
+            client, judge_model, current.prompt, feedback_summary,
+        )
+        print(f"  New prompt: {new_prompt[:80]}...")
 
-        for iteration in range(max_iterations):
-            print(f"\n{'='*60}")
-            print(f"Iteration {iteration + 1}/{max_iterations}")
-            print(f"{'='*60}")
+        # 5. Save new version via Prompts API
+        updated = client.prompts.update(
+            prompt_id, prompt=new_prompt, version=current.version,
+        )
+        print(f"  Saved as v{updated.version}")
 
-            prompt = (
-                f"You are optimizing a RAG agent's system prompt.\n\n"
-                f"Test cases the RAG agent must answer well:\n{test_cases_str}\n\n"
-                f"Your workflow:\n"
-                f"1. Call get_history to review past scores\n"
-                f"2. Call get_prompt to read the current prompt\n"
-                f"3. Call evaluate_prompt to test it against ALL test cases\n"
-                f"4. Call log_result to record the score\n"
-                f"5. Call propose_new_prompt with the feedback to generate an improved version\n\n"
-                f"Focus on: using retrieved context, being concise, citing sources."
-            )
 
-            inputs = [{"role": "user", "content": prompt}]
-
-            # Agentic loop: keep going until the model stops calling tools
-            while True:
-                response = self.client.responses.create(
-                    model=self.model,
-                    input=inputs,
-                    tools=[fn_to_tool_schema(fn) for fn in _tool_registry.values()],
-                    conversation=self.conversation_id,
-                    stream=False,
-                )
-
-                function_calls = [o for o in response.output if o.type == "function_call"]
-                if not function_calls:
-                    print(f"Optimizer: {response.output_text}")
-                    break
-
-                # Execute tool calls and feed results back
-                inputs = []
-                for fc in function_calls:
-                    print(f"  Tool: {fc.name}({fc.arguments[:80]}...)")
-                    result = self._execute_tool_call(fc.name, fc.arguments)
-                    inputs.append(fc)
-                    inputs.append({
-                        "type": "function_call_output",
-                        "call_id": fc.call_id,
-                        "output": result,
-                    })
-
-    def best_prompt(self) -> dict:
-        """Return the highest-scoring prompt from the ledger."""
-        history = self.ledger.history(self.prompt_id)
-        best = max(history, key=lambda h: h["score"])
-        prompt = self.client.prompts.retrieve(self.prompt_id, version=best["version"])
-        return {"version": best["version"], "score": best["score"], "prompt": prompt.prompt}
+def best_prompt(
+    client: LlamaStackClient,
+    ledger: ScoreLedger,
+    prompt_id: str,
+) -> dict:
+    """Return the highest-scoring prompt from the ledger."""
+    history = ledger.history(prompt_id)
+    best = max(history, key=lambda h: h["score"])
+    prompt = client.prompts.retrieve(prompt_id, version=best["version"])
+    return {"version": best["version"], "score": best["score"], "prompt": prompt.prompt}
 
 
 # ---------------------------------------------------------------------------
@@ -361,17 +390,34 @@ if __name__ == "__main__":
     client = LlamaStackClient(base_url="http://localhost:8321")
 
     MODEL = "ollama/llama3.1:8b"
+    JUDGE_MODEL = "ollama/gpt-oss:20b"
 
     TEST_CASES = [
-        {"question": "What is the maximum context length of Llama 3.1?", "expected": "128K tokens"},
-        {"question": "What languages does Llama 3.1 support?", "expected": "English, German, French, Italian, Portuguese, Hindi, Spanish, Thai"},
+        {
+            "question": "What is the deployment rollback procedure?",
+            "expected": "Revert the Kubernetes deployment to the previous revision using kubectl rollout undo",
+        },
+        {
+            "question": "What authentication method does the user service use?",
+            "expected": "JWT tokens issued by the auth gateway with RS256 signing",
+        },
+        {
+            "question": "What was the root cause of the 2025-02 checkout outage?",
+            "expected": "Connection pool exhaustion in the payments service due to missing timeout configuration",
+        },
     ]
 
-    # Create the inner RAG agent with a vector store from local files.
-    # Download the Llama 3.1 model card from:
-    # https://github.com/meta-llama/llama-models/blob/main/models/llama3_1/MODEL_CARD.md
-    rag_agent = RAGAgent.from_files(
-        client, model=MODEL, name="llama-docs", file_paths=["llama3_model_card.txt"],
+    # Some docs are indexed up front; others live in a local directory
+    # for the research agent to discover and index on demand.
+    research_agent = ResearchAgent.from_files(
+        client,
+        model=MODEL,
+        name="engineering-kb",
+        file_paths=[
+            "docs/design/user_service_v2.md",
+            "docs/runbooks/deployment_rollback.md",
+        ],
+        local_docs_dir="docs/postmortems",
     )
 
     # Create the initial system prompt
@@ -379,28 +425,26 @@ if __name__ == "__main__":
         prompt="You are a helpful assistant. Answer questions based on the provided context.",
     )
 
-    # Create the score ledger
     ledger = ScoreLedger()
 
-    # Create and run the optimizer
-    optimizer = OptimizerAgent(
+    # Run the deterministic optimization loop
+    optimize_prompt(
         client=client,
-        model=MODEL,
-        judge_model="ollama/gpt-oss:20b",
-        rag_agent=rag_agent,
+        judge_model=JUDGE_MODEL,
+        research_agent=research_agent,
         ledger=ledger,
         prompt_id=initial.prompt_id,
         test_cases=TEST_CASES,
+        max_iterations=5,
     )
-    optimizer.run(max_iterations=5)
 
     # Show results
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("Optimization complete!")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     for h in ledger.history(initial.prompt_id):
-        print(f"  v{h['version']}: score={h['score']:.2f} — {h['reasoning']}")
+        print(f"  v{h['version']}: score={h['score']:.2f} — {h['reasoning'][:80]}")
 
-    best = optimizer.best_prompt()
-    print(f"\nBest prompt (v{best['version']}, score={best['score']:.2f}):")
-    print(f"  {best['prompt']}")
+    result = best_prompt(client, ledger, initial.prompt_id)
+    print(f"\nBest prompt (v{result['version']}, score={result['score']:.2f}):")
+    print(f"  {result['prompt']}")
