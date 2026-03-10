@@ -309,7 +309,7 @@ answer = agent.research("What is the deployment rollback procedure?")
 print(f"Agent says: {answer}")
 ```
 
-The full implementation with tool schema generation and all supporting code is available at [prompt_optimizer_sketch.py](./prompt_optimizer_sketch.py).
+The full implementation with tool schema generation and all supporting code is available at [self_improving_agent.py](./self_improving_agent.py).
 
 ## How It Works Under the Hood
 
