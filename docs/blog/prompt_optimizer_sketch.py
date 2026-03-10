@@ -414,10 +414,10 @@ if __name__ == "__main__":
         model=MODEL,
         name="engineering-kb",
         file_paths=[
-            "docs/blog/sample_docs/design/user_service_v2.md",
-            "docs/blog/sample_docs/runbooks/deployment_rollback.md",
+            "docs/blog/building-agentic-flows/design/user_service_v2.md",
+            "docs/blog/building-agentic-flows/runbooks/deployment_rollback.md",
         ],
-        local_docs_dir="docs/blog/sample_docs/postmortems",
+        local_docs_dir="docs/blog/building-agentic-flows/postmortems",
     )
 
     # Create the initial system prompt
