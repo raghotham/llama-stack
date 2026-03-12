@@ -12,7 +12,7 @@ date: 2026-03-01
 
 What if your AI agent could improve itself? Most agent tutorials show a single loop — user asks a question, the agent calls some tools, returns an answer. But what happens when you need to systematically improve your agent's behavior over time?
 
-In this post, we build a **ResearchAgent** that answers questions from an internal engineering knowledge base — and gets better at it automatically. The agent uses the Responses API agentic loop with `file_search` and client-side tools to research questions, and it owns its own system prompt. Every N calls, it benchmarks itself against test cases, judges the results, and rewrites its own prompt via the Prompts API.
+In this post, we build a **ResearchAgent** that answers questions from an internal engineering knowledge base — and gets better at it automatically. The agent uses the Responses API agentic loop with `file_search` and client-side tools to research questions, and it owns its own system prompt. Every N calls, it benchmarks itself by using a different model to judge the results, and rewrites its own prompt via the Prompts API.
 
 This is literally self-referential: **a Llama Stack agent evaluating and improving itself** using the Responses API, Prompts API, and Vector Stores as its toolkit.
 
@@ -161,7 +161,7 @@ This uses the Files API to upload the document and `vector_stores.files.create()
 
 ## Self-Improvement
 
-The self-improvement cycle is deterministic — no agentic loop, no LLM-driven tool selection. The agent benchmarks itself, then rewrites its own prompt based on the feedback.
+The self-improvement cycle is where the agent benchmarks itself, then rewrites its own prompt based on the feedback.
 
 ### evaluate_self
 
@@ -280,8 +280,7 @@ agent = ResearchAgent.from_files(
     test_cases=[
         {
             "question": "What is the deployment rollback procedure?",
-            "expected": "Revert the Kubernetes deployment to the previous revision "
-            "using kubectl rollout undo",
+            "expected": "Revert the Kubernetes deployment to the previous revision using kubectl rollout undo",
         },
         {
             "question": "What authentication method does the user service use?",
@@ -289,8 +288,7 @@ agent = ResearchAgent.from_files(
         },
         {
             "question": "What was the root cause of the 2025-02 checkout outage?",
-            "expected": "Connection pool exhaustion in the payments service "
-            "due to missing timeout configuration",
+            "expected": "Connection pool exhaustion in the payments service due to missing timeout configuration",
         },
     ],
     optimize_every=10,
