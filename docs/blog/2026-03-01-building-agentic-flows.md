@@ -33,8 +33,8 @@ A single `ResearchAgent` class that does two things:
 │    Responses API agentic loop (while True):              │
 │      Server-side: file_search → Vector Store             │
 │      Client-side: read_local_file, index_document,       │
-│                   list_local_files                        │
-│    Increments call counter; triggers self-improvement     │
+│                   list_local_files                       │
+│    Increments call counter; triggers self-improvement    │
 │    every N calls                                         │
 │                                                          │
 │  evaluate_self()                                         │
