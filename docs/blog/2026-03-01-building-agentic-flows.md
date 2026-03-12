@@ -49,9 +49,9 @@ A single `ResearchAgent` class that does two things:
 
 ## Prerequisites
 
-- A running Llama Stack server with Ollama: `uv run --with llama-stack llama stack run ollama`
+- [Ollama](https://ollama.com) running locally with two models pulled: `llama3.1:8b` for the research agent and `gpt-oss:20b` as the judge
+- A Llama Stack server using the starter distribution, pointed at Ollama via the `OLLAMA_URL` environment variable
 - Python SDK: `uv pip install llama-stack-client`
-- Two models via Ollama: `llama3.1:8b` for the research agent and `gpt-oss:20b` as the judge
 
 ## The Research Loop
 
@@ -244,13 +244,15 @@ class ResearchAgent:
 
 ## Running It
 
-First, make sure you have a Llama Stack server running with Ollama:
+First, pull the models and start Ollama, then run the Llama Stack starter distribution pointing at it:
 
 ```bash
 ollama pull llama3.1:8b
 ollama pull gpt-oss:20b
-uv run --with llama-stack llama stack run ollama
+OLLAMA_URL=http://localhost:11434/v1 uv run --with llama-stack llama stack run starter
 ```
+
+The `OLLAMA_URL` environment variable tells the starter distribution to use Ollama as its inference provider. The server starts on `http://localhost:8321` by default.
 
 Then create the agent with some engineering documents. Some docs are indexed in the vector store up front; others live in a local directory for the agent to discover and index on demand:
 
