@@ -178,7 +178,7 @@ result = client.scoring.score(
 
 ## Integration with Evaluation
 
-The Scoring API works closely with the [Evaluation](./evaluation.mdx) API to provide comprehensive evaluation workflows:
+The Scoring API works closely with the [Evaluation](./evaluation) API to provide comprehensive evaluation workflows:
 
 1. **Datasets** are loaded via the DatasetIO API
 2. **Evaluation** generates model outputs using the Eval API
@@ -187,7 +187,7 @@ The Scoring API works closely with the [Evaluation](./evaluation.mdx) API to pro
 
 ## Next Steps
 
-- Check out the [Evaluation](./evaluation.mdx) guide for running complete evaluations
-- See the [Building Applications - Evaluation](../building_applications/evals.mdx) guide for application examples
+- Check out the [Evaluation](./evaluation) guide for running complete evaluations
+- See the [Building Applications - Evaluation](../building_applications/evals) guide for application examples
 - Review the [Evaluation Reference](../references/evals_reference/) for comprehensive scoring function usage
 - Explore the [Evaluation Concepts](../concepts/evaluation_concepts) for detailed conceptual information

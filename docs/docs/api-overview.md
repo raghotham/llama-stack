@@ -21,7 +21,7 @@ Llama Stack implements the OpenAI API and organizes endpoints by stability level
 
 These APIs follow semantic versioning and maintain backward compatibility within major versions.
 
-[**Browse Stable APIs →**](./api/index.mdx)
+[**Browse Stable APIs →**](./api/index)
 
 ## Experimental APIs
 
@@ -29,10 +29,10 @@ These APIs follow semantic versioning and maintain backward compatibility within
 
 Experimental endpoints (v1alpha, v1beta) include new capabilities under active development. They are feature-complete but may change based on feedback.
 
-[**Browse Experimental APIs →**](./api-experimental/index.mdx)
+[**Browse Experimental APIs →**](./api-experimental/index)
 
 ## Deprecated APIs
 
 **Legacy APIs scheduled for removal.**
 
-See [deprecated APIs](./api-deprecated/index.mdx) for migration guidance.
+See [deprecated APIs](./api-deprecated/index) for migration guidance.

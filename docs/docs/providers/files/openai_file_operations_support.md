@@ -284,7 +284,7 @@ Planned improvements for file operations support:
 
 ## Support and Resources
 
-- **Documentation**: [File Operations and Vector Store Integration](../../concepts/file_operations_vector_stores.mdx)
+- **Documentation**: [File Operations and Vector Store Integration](../../concepts/file_operations_vector_stores)
 - **API Reference**: Files API
 - **Provider Docs**: [Vector Store Providers](../vector_io/)
 - **Examples**: [Getting Started](../getting_started/)
