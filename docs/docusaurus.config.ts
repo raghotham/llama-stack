@@ -239,6 +239,23 @@ const config: Config = {
   } satisfies Preset.ThemeConfig,
 
   plugins: [
+    function webpackFallbackPlugin() {
+      return {
+        name: 'webpack-fallback',
+        configureWebpack() {
+          return {
+            resolve: {
+              fallback: {
+                path: false,
+                fs: false,
+                os: false,
+                crypto: false,
+              },
+            },
+          };
+        },
+      };
+    },
     [
       "docusaurus-plugin-openapi-docs",
       {
