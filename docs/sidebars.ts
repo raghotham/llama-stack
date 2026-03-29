@@ -182,13 +182,7 @@ const sidebars: SidebarsConfig = {
             'providers/tool_runtime/remote_wolfram-alpha'
           ],
         },
-        {
-          type: 'category',
-          label: 'Agents',
-          collapsed: true,
-          items: [
-          ],
-        },
+
         {
           type: 'category',
           label: 'Post Training',
