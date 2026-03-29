@@ -12,7 +12,6 @@ const config: Config = {
   url: 'https://llamastack.github.io',
   baseUrl: '/',
   onBrokenLinks: "warn",
-  onBrokenMarkdownLinks: "warn",
   favicon: "img/favicon.ico",
 
   // Enhanced favicon and meta configuration
@@ -319,6 +318,9 @@ const config: Config = {
   markdown: {
     mermaid: true,
     format: 'detect',
+    hooks: {
+      onBrokenMarkdownLinks: 'warn',
+    },
   },
 };
 
