@@ -49,7 +49,7 @@ And then use this dotenv file when running client SDK tests via the following:
 uv run --env-file .env -- pytest -v tests/integration/conversations/test_openai_conversations.py --setup=gpt
 ```
 
-For additional information about testing, please refer to the [tests documentation](tests/README.md) for both unit and integration test.
+For additional information about testing, please refer to the [tests documentation](https://github.com/llamastack/llama-stack/blob/main/tests/README.md) for both unit and integration test.
 
 ### Pre-commit Hooks
 
@@ -194,7 +194,7 @@ If you wish to include a new in-tree provider in the Core project, please follow
 
 1. **Open a discussion issue**: Open an issue with label "discussion" describing the provider you want to add, its use case, and how it fits into the Llama Stack ecosystem.
 
-2. **Present at a community call** (optional): Bring your proposal to a [community call](README.md#community) to gather feedback, answer questions, and build consensus with other contributors and maintainers.
+2. **Present at a community call** (optional): Bring your proposal to a [community call](https://github.com/llamastack/llama-stack#community) to gather feedback, answer questions, and build consensus with other contributors and maintainers.
 
 3. **Implement and submit a PR**: Once approved, use the [Adding a New API Provider](https://llamastack.github.io/docs/contributing/new_api_provider) guide to help you get started. Once approved, follow the standard pull request process outlined above.
 
@@ -222,7 +222,7 @@ This process helps ensure that new providers are well-designed, avoid duplicatio
   that describes the configuration. These descriptions will be used to generate the provider
   documentation.
 - When possible, use keyword arguments only when calling functions.
-- Llama Stack utilizes [custom Exception classes](llama_stack/apis/common/errors.py) for certain Resources that should be used where applicable.
+- Llama Stack utilizes [custom Exception classes](https://github.com/llamastack/llama-stack/blob/main/llama_stack/apis/common/errors.py) for certain Resources that should be used where applicable.
 
 ### License
 
@@ -293,5 +293,5 @@ The generated API schema will be available in `docs/static/`. Make sure to revie
 
 ## Release Process
 
-For information about how Llama Stack versions are released, including release schedules, testing requirements, and how to contribute to releases, see [RELEASE_PROCESS.md](./RELEASE_PROCESS.md).
+For information about how Llama Stack versions are released, including release schedules, testing requirements, and how to contribute to releases, see [RELEASE_PROCESS.md](https://github.com/llamastack/llama-stack/blob/main/RELEASE_PROCESS.md).
 
