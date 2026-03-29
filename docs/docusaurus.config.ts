@@ -78,6 +78,7 @@ const config: Config = {
           ],
         },
         blog: {
+          onUntruncatedBlogPosts: 'ignore',
           showReadingTime: true,
           readingTime: ({content, frontMatter, defaultReadingTime}) =>
             defaultReadingTime({content, options: {wordsPerMinute: 300}}),
@@ -317,6 +318,7 @@ const config: Config = {
 
   markdown: {
     mermaid: true,
+    format: 'detect',
   },
 };
 

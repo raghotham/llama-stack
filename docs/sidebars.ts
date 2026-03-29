@@ -73,7 +73,6 @@ const sidebars: SidebarsConfig = {
           collapsed: true,
           items: [
             'distributions/self_hosted_distro/starter',
-            'distributions/self_hosted_distro/dell',
             'distributions/self_hosted_distro/nvidia',
             'distributions/self_hosted_distro/passthrough',
           ],
@@ -188,8 +187,6 @@ const sidebars: SidebarsConfig = {
           label: 'Agents',
           collapsed: true,
           items: [
-            'providers/agents/index',
-            'providers/agents/inline_builtin'
           ],
         },
         {
@@ -293,7 +290,6 @@ const sidebars: SidebarsConfig = {
       label: 'Advanced APIs',
       collapsed: true,
       items: [
-        'advanced_apis/post_training',
         'advanced_apis/evaluation',
         'advanced_apis/scoring',
       ],
