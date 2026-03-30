@@ -144,6 +144,11 @@ const config: Config = {
           label: 'GitHub',
           position: 'right',
         },
+        {
+          href: '/versions.html',
+          label: 'Versions',
+          position: 'right',
+        },
       ],
     },
     footer: {
