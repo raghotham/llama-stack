@@ -25,7 +25,7 @@ RunPod inference provider for running models on RunPod's cloud GPU platform.
 | `network.tls.client_cert` | `Path \| None` | No |  | Path to client certificate file for mTLS authentication. |
 | `network.tls.client_key` | `Path \| None` | No |  | Path to client private key file for mTLS authentication. |
 | `network.proxy` | `ProxyConfig \| None` | No |  | Proxy configuration for HTTP connections. |
-| `network.proxy.url` | `HttpUrl \| None` | No |  | Single proxy URL for all connections (e.g., 'http://proxy.example.com:8080'). |
+| `network.proxy.url` | `HttpUrl \| None` | No |  | Single proxy URL for all connections (e.g., '<http://proxy.example.com:8080>'). |
 | `network.proxy.http` | `HttpUrl \| None` | No |  | Proxy URL for HTTP connections. |
 | `network.proxy.https` | `HttpUrl \| None` | No |  | Proxy URL for HTTPS connections. |
 | `network.proxy.cacert` | `Path \| None` | No |  | Path to CA certificate file for verifying the proxy's certificate. Required for proxies in interception mode. |

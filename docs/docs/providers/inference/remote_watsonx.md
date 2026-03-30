@@ -25,7 +25,7 @@ IBM WatsonX inference provider for accessing AI models on IBM's WatsonX platform
 | `network.tls.client_cert` | `Path \| None` | No |  | Path to client certificate file for mTLS authentication. |
 | `network.tls.client_key` | `Path \| None` | No |  | Path to client private key file for mTLS authentication. |
 | `network.proxy` | `ProxyConfig \| None` | No |  | Proxy configuration for HTTP connections. |
-| `network.proxy.url` | `HttpUrl \| None` | No |  | Single proxy URL for all connections (e.g., 'http://proxy.example.com:8080'). |
+| `network.proxy.url` | `HttpUrl \| None` | No |  | Single proxy URL for all connections (e.g., '<http://proxy.example.com:8080>'). |
 | `network.proxy.http` | `HttpUrl \| None` | No |  | Proxy URL for HTTP connections. |
 | `network.proxy.https` | `HttpUrl \| None` | No |  | Proxy URL for HTTPS connections. |
 | `network.proxy.cacert` | `Path \| None` | No |  | Path to CA certificate file for verifying the proxy's certificate. Required for proxies in interception mode. |
@@ -34,7 +34,7 @@ IBM WatsonX inference provider for accessing AI models on IBM's WatsonX platform
 | `network.timeout.connect` | `float \| None` | No |  | Connection timeout in seconds. |
 | `network.timeout.read` | `float \| None` | No |  | Read timeout in seconds. |
 | `network.headers` | `dict[str, str] \| None` | No |  | Additional HTTP headers to include in all requests. |
-| `base_url` | `HttpUrl \| None` | No | https://us-south.ml.cloud.ibm.com | A base url for accessing the watsonx.ai |
+| `base_url` | `HttpUrl \| None` | No | <https://us-south.ml.cloud.ibm.com> | A base url for accessing the watsonx.ai |
 | `project_id` | `str \| None` | No |  | The watsonx.ai project ID |
 | `timeout` | `int` | No | 60 | Timeout for the HTTP requests |
 

@@ -11,11 +11,9 @@ title: remote::oci
 
 ## Description
 
-
 Oracle Cloud Infrastructure (OCI) Generative AI inference provider for accessing OCI's Generative AI Platform-as-a-Service models.
 Provider documentation
-https://docs.oracle.com/en-us/iaas/Content/generative-ai/home.htm
-
+<https://docs.oracle.com/en-us/iaas/Content/generative-ai/home.htm>
 
 ## Configuration
 
@@ -32,7 +30,7 @@ https://docs.oracle.com/en-us/iaas/Content/generative-ai/home.htm
 | `network.tls.client_cert` | `Path \| None` | No |  | Path to client certificate file for mTLS authentication. |
 | `network.tls.client_key` | `Path \| None` | No |  | Path to client private key file for mTLS authentication. |
 | `network.proxy` | `ProxyConfig \| None` | No |  | Proxy configuration for HTTP connections. |
-| `network.proxy.url` | `HttpUrl \| None` | No |  | Single proxy URL for all connections (e.g., 'http://proxy.example.com:8080'). |
+| `network.proxy.url` | `HttpUrl \| None` | No |  | Single proxy URL for all connections (e.g., '<http://proxy.example.com:8080>'). |
 | `network.proxy.http` | `HttpUrl \| None` | No |  | Proxy URL for HTTP connections. |
 | `network.proxy.https` | `HttpUrl \| None` | No |  | Proxy URL for HTTPS connections. |
 | `network.proxy.cacert` | `Path \| None` | No |  | Path to CA certificate file for verifying the proxy's certificate. Required for proxies in interception mode. |

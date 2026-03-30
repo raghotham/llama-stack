@@ -8,9 +8,7 @@ title: remote::qdrant
 
 ## Description
 
-
 Please refer to the inline provider documentation.
-
 
 ## Configuration
 

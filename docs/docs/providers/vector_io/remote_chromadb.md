@@ -39,13 +39,14 @@ title: remote::chromadb
 
 ## Description
 
-
 [Chroma](https://www.trychroma.com/) is an inline and remote vector
 database provider for Llama Stack. It allows you to store and query vectors directly within a Chroma database.
 That means you're not limited to storing vectors in memory or in a separate service.
 
 ## Features
+
 Chroma supports:
+
 - Store embeddings and their metadata
 - Vector search
 - Full-text search
@@ -70,8 +71,8 @@ pip install chromadb
 ```
 
 ## Documentation
-See [Chroma's documentation](https://docs.trychroma.com/docs/overview/introduction) for more details about Chroma in general.
 
+See [Chroma's documentation](https://docs.trychroma.com/docs/overview/introduction) for more details about Chroma in general.
 
 ## Configuration
 

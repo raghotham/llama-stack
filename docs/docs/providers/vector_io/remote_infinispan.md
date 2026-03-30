@@ -115,7 +115,6 @@ title: remote::infinispan
 
 ## Description
 
-
 [Infinispan](https://infinispan.org/) is a remote vector database provider for Llama Stack. It
 allows you to store and query vectors in a distributed Infinispan cluster via HTTP REST API.
 Infinispan provides high-performance, scalable data storage with support for both vector similarity
@@ -134,6 +133,7 @@ search and full-text search capabilities.
 ## Search Modes
 
 **Supported:**
+
 - **Vector Search** (`mode="vector"`): Performs vector similarity search using embeddings
 - **Keyword Search** (`mode="keyword"`): Full-text search using Infinispan Query DSL/Ickle
 - **Hybrid Search** (`mode="hybrid"`): Combines vector and keyword search with configurable reranking
@@ -224,12 +224,11 @@ Set the `auth_mechanism` parameter to either `"digest"` or `"basic"`.
 
 - Infinispan Server 16.0+ (with vector search support)
 
-
 ## Configuration
 
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
-| `url` | `HttpUrl` | No | http://localhost:11222/ | Infinispan server URL (e.g., http://localhost:11222) |
+| `url` | `HttpUrl` | No | <http://localhost:11222/> | Infinispan server URL (e.g., <http://localhost:11222>) |
 | `username` | `str \| None` | No |  | Authentication username |
 | `password` | `SecretStr \| None` | No |  | Authentication password |
 | `use_https` | `bool` | No | False | Enable HTTPS/TLS connection |

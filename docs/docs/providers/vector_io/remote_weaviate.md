@@ -37,13 +37,14 @@ title: remote::weaviate
 
 ## Description
 
-
 [Weaviate](https://weaviate.io/) is a vector database provider for Llama Stack.
 It allows you to store and query vectors directly within a Weaviate database.
 That means you're not limited to storing vectors in memory or in a separate service.
 
 ## Features
+
 Weaviate supports:
+
 - Store embeddings and their metadata
 - Vector search
 - Full-text search
@@ -51,7 +52,6 @@ Weaviate supports:
 - Document storage
 - Metadata filtering
 - Multi-modal retrieval
-
 
 ## Usage
 
@@ -66,8 +66,8 @@ To use Weaviate in your Llama Stack project, follow these steps:
 To install Weaviate see the [Weaviate quickstart documentation](https://weaviate.io/developers/weaviate/quickstart).
 
 ## Documentation
-See [Weaviate's documentation](https://weaviate.io/developers/weaviate) for more details about Weaviate in general.
 
+See [Weaviate's documentation](https://weaviate.io/developers/weaviate) for more details about Weaviate in general.
 
 ## Configuration
 

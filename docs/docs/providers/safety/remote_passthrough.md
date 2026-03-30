@@ -14,7 +14,7 @@ Passthrough safety provider that forwards moderation calls to a downstream HTTP 
 
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
-| `base_url` | `HttpUrl` | No |  | Base URL of the downstream safety service (e.g. https://safety.example.com/v1) |
+| `base_url` | `HttpUrl` | No |  | Base URL of the downstream safety service (e.g. <https://safety.example.com/v1>) |
 | `api_key` | `SecretStr \| None` | No |  | API key for the downstream safety service. If set, takes precedence over provider data. |
 | `forward_headers` | `dict[str, str] \| None` | No |  | Mapping of provider data keys to outbound HTTP header names. Only keys listed here are forwarded from X-LlamaStack-Provider-Data to the downstream service. Keys with a __ prefix and core security-sensitive headers (for example Host, Content-Type, Transfer-Encoding, Cookie) are rejected at config parse time. Example: &#123;"maas_api_token": "Authorization"&#125; |
 | `extra_blocked_headers` | `list[str]` | No | [] | Additional outbound header names to block in forward_headers. Names are matched case-insensitively and added to the core blocked list. This can tighten policy but cannot unblock core security-sensitive headers. |

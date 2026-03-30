@@ -203,7 +203,6 @@ title: remote::milvus
 
 ## Description
 
-
 [Milvus](https://milvus.io/) is an inline and remote vector database provider for Llama Stack. It
 allows you to store and query vectors directly within a Milvus database.
 That means you're not limited to storing vectors in memory or in a separate service.
@@ -239,6 +238,7 @@ pip install pymilvus
 ## Configuration
 
 In Llama Stack, Milvus can be configured in two ways:
+
 - **Inline (Local) Configuration** - Uses Milvus-Lite for local storage
 - **Remote Configuration** - Connects to a remote Milvus server
 
@@ -314,6 +314,7 @@ vector_io:
 Milvus supports three different search modes for both inline and remote configurations:
 
 ### Vector Search
+
 Vector search uses semantic similarity to find the most relevant chunks based on embedding vectors. This is the default search mode and works well for finding conceptually similar content.
 
 ```python
@@ -327,6 +328,7 @@ search_response = client.vector_stores.search(
 ```
 
 ### Keyword Search
+
 Keyword search uses traditional text-based matching to find chunks containing specific terms or phrases. This is useful when you need exact term matches.
 
 ```python
@@ -340,9 +342,11 @@ search_response = client.vector_stores.search(
 ```
 
 ### Hybrid Search
+
 Hybrid search combines both vector and keyword search methods to provide more comprehensive results. It leverages the strengths of both semantic similarity and exact term matching.
 
 #### Basic Hybrid Search
+
 ```python
 # Basic hybrid search example (uses RRF ranker with default impact_factor=60.0)
 search_response = client.vector_stores.search(
@@ -356,6 +360,7 @@ search_response = client.vector_stores.search(
 **Note**: The default `impact_factor` value of 60.0 was empirically determined to be optimal in the original RRF research paper: ["Reciprocal Rank Fusion outperforms Condorcet and individual Rank Learning Methods"](https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf) (Cormack et al., 2009).
 
 #### Hybrid Search with RRF (Reciprocal Rank Fusion) Ranker
+
 RRF combines rankings from vector and keyword search by using reciprocal ranks. The impact factor controls how much weight is given to higher-ranked results.
 
 ```python
@@ -375,6 +380,7 @@ search_response = client.vector_stores.search(
 ```
 
 #### Hybrid Search with Weighted Ranker
+
 Weighted ranker linearly combines normalized scores from vector and keyword search. The alpha parameter controls the balance between the two search methods.
 
 ```python
@@ -396,10 +402,10 @@ search_response = client.vector_stores.search(
 For detailed documentation on RRF and Weighted rankers, please refer to the [Milvus Reranking Guide](https://milvus.io/docs/reranking.md).
 
 ## Documentation
+
 See the [Milvus documentation](https://milvus.io/docs/install-overview.md) for more details about Milvus in general.
 
 For more details on TLS configuration, refer to the [TLS setup guide](https://milvus.io/docs/tls.md).
-
 
 ## Configuration
 

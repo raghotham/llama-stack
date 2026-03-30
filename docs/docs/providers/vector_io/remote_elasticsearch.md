@@ -45,13 +45,14 @@ title: remote::elasticsearch
 
 ## Description
 
-
 [Elasticsearch](https://www.elastic.co/) is a vector database provider for Llama Stack.
 It allows you to store and query vectors directly within an Elasticsearch database.
 That means you're not limited to storing vectors in memory or in a separate service.
 
 ## Features
+
 Elasticsearch supports:
+
 - Store embeddings and their metadata
 - Vector search
 - Full-text search
@@ -82,8 +83,8 @@ Or you can [start a free trial](https://www.elastic.co/cloud/cloud-trial-overvie
 For more information on how to deploy Elasticsearch, see the [official documentation](https://www.elastic.co/docs/deploy-manage/deploy).
 
 ## Documentation
-See [Elasticsearch's documentation](https://www.elastic.co/docs/solutions/search) for more details about Elasticsearch in general.
 
+See [Elasticsearch's documentation](https://www.elastic.co/docs/solutions/search) for more details about Elasticsearch in general.
 
 ## Configuration
 

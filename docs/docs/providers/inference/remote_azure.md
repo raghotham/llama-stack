@@ -11,11 +11,9 @@ title: remote::azure
 
 ## Description
 
-
 Azure OpenAI inference provider for accessing GPT models and other Azure services.
 Provider documentation
-https://learn.microsoft.com/en-us/azure/ai-foundry/openai/overview
-
+<https://learn.microsoft.com/en-us/azure/ai-foundry/openai/overview>
 
 ## Configuration
 
@@ -32,7 +30,7 @@ https://learn.microsoft.com/en-us/azure/ai-foundry/openai/overview
 | `network.tls.client_cert` | `Path \| None` | No |  | Path to client certificate file for mTLS authentication. |
 | `network.tls.client_key` | `Path \| None` | No |  | Path to client private key file for mTLS authentication. |
 | `network.proxy` | `ProxyConfig \| None` | No |  | Proxy configuration for HTTP connections. |
-| `network.proxy.url` | `HttpUrl \| None` | No |  | Single proxy URL for all connections (e.g., 'http://proxy.example.com:8080'). |
+| `network.proxy.url` | `HttpUrl \| None` | No |  | Single proxy URL for all connections (e.g., '<http://proxy.example.com:8080>'). |
 | `network.proxy.http` | `HttpUrl \| None` | No |  | Proxy URL for HTTP connections. |
 | `network.proxy.https` | `HttpUrl \| None` | No |  | Proxy URL for HTTPS connections. |
 | `network.proxy.cacert` | `Path \| None` | No |  | Path to CA certificate file for verifying the proxy's certificate. Required for proxies in interception mode. |
@@ -41,7 +39,7 @@ https://learn.microsoft.com/en-us/azure/ai-foundry/openai/overview
 | `network.timeout.connect` | `float \| None` | No |  | Connection timeout in seconds. |
 | `network.timeout.read` | `float \| None` | No |  | Read timeout in seconds. |
 | `network.headers` | `dict[str, str] \| None` | No |  | Additional HTTP headers to include in all requests. |
-| `base_url` | `HttpUrl \| None` | No |  | Azure API base for Azure (e.g., https://your-resource-name.openai.azure.com/openai/v1) |
+| `base_url` | `HttpUrl \| None` | No |  | Azure API base for Azure (e.g., <https://your-resource-name.openai.azure.com/openai/v1>) |
 | `api_version` | `str \| None` | No |  | Azure API version for Azure (e.g., 2024-12-01-preview) |
 | `api_type` | `str \| None` | No | azure | Azure API type for Azure (e.g., azure) |
 

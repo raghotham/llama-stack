@@ -115,7 +115,6 @@ title: remote::pgvector
 
 ## Description
 
-
 [PGVector](https://github.com/pgvector/pgvector) is a remote vector database provider for Llama Stack. It
 allows you to store and query vectors directly in memory.
 That means you'll get fast and efficient vector retrieval.
@@ -128,18 +127,21 @@ That means you'll get fast and efficient vector retrieval.
 There are three implementations of search for PGVectoIndex available:
 
 1. Vector Search:
+
 - How it works:
   - Uses PostgreSQL's vector extension (pgvector) to perform similarity search
   - Compares query embeddings against stored embeddings using Cosine distance or other distance metrics
   - Eg. SQL query: SELECT document, embedding &lt;=&gt; %s::vector AS distance FROM table ORDER BY distance
 
 -Characteristics:
-  - Semantic understanding - finds documents similar in meaning even if they don't share keywords
-  - Works with high-dimensional vector embeddings (typically 768, 1024, or higher dimensions)
-  - Best for: Finding conceptually related content, handling synonyms, cross-language search
-  - By default, Llama Stack creates a HNSW (Hierarchical Navigable Small Worlds) index on a column "embedding" in a vector store table enabling production-ready, performant and scalable vector search for large datasets out of the box.
 
-2. Keyword Search
+- Semantic understanding - finds documents similar in meaning even if they don't share keywords
+- Works with high-dimensional vector embeddings (typically 768, 1024, or higher dimensions)
+- Best for: Finding conceptually related content, handling synonyms, cross-language search
+- By default, Llama Stack creates a HNSW (Hierarchical Navigable Small Worlds) index on a column "embedding" in a vector store table enabling production-ready, performant and scalable vector search for large datasets out of the box.
+
+1. Keyword Search
+
 - How it works:
   - Uses PostgreSQL's full-text search capabilities with tsvector and ts_rank
   - Converts text to searchable tokens using to_tsvector('english', text). Default language is English.
@@ -151,14 +153,15 @@ There are three implementations of search for PGVectoIndex available:
   - Scoring: Uses PostgreSQL's ts_rank function for relevance scoring
   - Best for: Exact term matching, proper names, technical terms, Boolean-style queries
 
-3. Hybrid Search
+1. Hybrid Search
+
 - How it works:
   - Combines both vector and keyword search results
   - Runs both searches independently, then merges results using configurable reranking
 
 - Two reranking strategies available:
-    - Reciprocal Rank Fusion (RRF) - (default: 60.0)
-    - Weighted Average - (default: 0.5)
+  - Reciprocal Rank Fusion (RRF) - (default: 60.0)
+  - Weighted Average - (default: 0.5)
 
 - Characteristics:
   - Best of both worlds: semantic understanding + exact matching
@@ -166,7 +169,7 @@ There are three implementations of search for PGVectoIndex available:
   - Configurable balance between semantic and lexical matching
   - Best for: General-purpose search where you want both precision and recall
 
-4. Database Schema
+1. Database Schema
 
 The PGVector implementation stores data optimized for all three search types:
 CREATE TABLE vector_store_xxx (
@@ -176,7 +179,6 @@ CREATE TABLE vector_store_xxx (
     content_text TEXT,                 -- Raw text content
     tokenized_content TSVECTOR          -- For keyword search
 );
-
 
 ## Usage
 
@@ -189,6 +191,7 @@ To use PGVector in your Llama Stack project, follow these steps:
 ## This is an example how you can set up your environment for using PGVector (you can use either Podman or Docker)
 
 1. Export PGVector environment variables:
+
 ```bash
 export PGVECTOR_DB=testvectordb
 export PGVECTOR_HOST=localhost
@@ -197,33 +200,37 @@ export PGVECTOR_USER=user
 export PGVECTOR_PASSWORD=password
 ```
 
-2. Pull pgvector image with that tag you want:
+1. Pull pgvector image with that tag you want:
 
 Via Podman:
+
 ```bash
 podman pull pgvector/pgvector:0.8.1-pg18-trixie
 ```
 
 Via Docker:
+
 ```bash
 docker pull pgvector/pgvector:0.8.1-pg18-trixie
 ```
 
-3. Run container with PGVector:
+1. Run container with PGVector:
 
 Via Podman
+
 ```bash
 podman run -d   --name pgvector   -e POSTGRES_PASSWORD=password   -e POSTGRES_USER=user   -e POSTGRES_DB=testvectordb   -p 5432:5432   -v pgvector_data:/var/lib/postgresql   pgvector/pgvector:0.8.1-pg18-trixie
 ```
 
 Via Docker
+
 ```bash
 docker run -d   --name pgvector   -e POSTGRES_PASSWORD=password   -e POSTGRES_USER=user   -e POSTGRES_DB=testvectordb   -p 5432:5432   -v pgvector_data:/var/lib/postgresql   pgvector/pgvector:0.8.1-pg18-trixie
 ```
 
 ## Documentation
-See [PGVector's documentation](https://github.com/pgvector/pgvector) for more details about PGVector in general.
 
+See [PGVector's documentation](https://github.com/pgvector/pgvector) for more details about PGVector in general.
 
 ## Configuration
 

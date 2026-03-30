@@ -14,7 +14,7 @@ SambaNova's safety provider for content moderation and safety filtering.
 
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
-| `url` | `str` | No | https://api.sambanova.ai/v1 | The URL for the SambaNova AI server |
+| `url` | `str` | No | <https://api.sambanova.ai/v1> | The URL for the SambaNova AI server |
 | `api_key` | `SecretStr \| None` | No |  | The SambaNova cloud API Key |
 
 ## Sample Configuration

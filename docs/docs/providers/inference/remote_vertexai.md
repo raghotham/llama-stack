@@ -36,6 +36,7 @@ Google Vertex AI inference provider enables you to use Google's Gemini models th
 • Authentication: Uses Google Cloud Application Default Credentials (ADC) instead of API keys
 
 Configuration:
+
 - Set VERTEX_AI_PROJECT environment variable (required)
 - Set VERTEX_AI_LOCATION environment variable (optional, defaults to global)
 - Use Google Cloud Application Default Credentials or service account key
@@ -45,6 +46,7 @@ Option 1 (Recommended): gcloud auth application-default login
 Option 2: Set GOOGLE_APPLICATION_CREDENTIALS to service account key path
 
 Available Models:
+
 - vertex_ai/gemini-2.0-flash
 - vertex_ai/gemini-2.5-flash
 - vertex_ai/gemini-2.5-pro
@@ -63,7 +65,7 @@ Available Models:
 | `network.tls.client_cert` | `Path \| None` | No |  | Path to client certificate file for mTLS authentication. |
 | `network.tls.client_key` | `Path \| None` | No |  | Path to client private key file for mTLS authentication. |
 | `network.proxy` | `ProxyConfig \| None` | No |  | Proxy configuration for HTTP connections. |
-| `network.proxy.url` | `HttpUrl \| None` | No |  | Single proxy URL for all connections (e.g., 'http://proxy.example.com:8080'). |
+| `network.proxy.url` | `HttpUrl \| None` | No |  | Single proxy URL for all connections (e.g., '<http://proxy.example.com:8080>'). |
 | `network.proxy.http` | `HttpUrl \| None` | No |  | Proxy URL for HTTP connections. |
 | `network.proxy.https` | `HttpUrl \| None` | No |  | Proxy URL for HTTPS connections. |
 | `network.proxy.cacert` | `Path \| None` | No |  | Path to CA certificate file for verifying the proxy's certificate. Required for proxies in interception mode. |
