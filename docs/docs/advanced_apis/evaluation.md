@@ -5,6 +5,7 @@
 The Llama Stack Evaluation flow allows you to run evaluations on your GenAI application datasets or pre-registered benchmarks.
 
 We introduce a set of APIs in Llama Stack for supporting running evaluations of LLM applications:
+
 - `/datasetio` + `/datasets` API
 - `/scoring` + `/scoring_functions` API
 - `/eval` + `/benchmarks` API
@@ -60,7 +61,7 @@ NVIDIA's evaluation provider for running evaluation tasks on NVIDIA's platform.
 
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
-| `evaluator_url` | `str` | No | http://0.0.0.0:7331 | The url for accessing the evaluator service |
+| `evaluator_url` | `str` | No | <http://0.0.0.0:7331> | The url for accessing the evaluator service |
 
 #### Sample Configuration
 
@@ -81,6 +82,7 @@ evaluator_url: ${env.NVIDIA_EVALUATOR_URL:=http://localhost:7331}
 Llama stack pre-registers several popular open-benchmarks to easily evaluate model performance via CLI.
 
 The list of open-benchmarks we currently support:
+
 - [MMLU-COT](https://arxiv.org/abs/2009.03300) (Measuring Massive Multitask Language Understanding): Benchmark designed to comprehensively evaluate the breadth and depth of a model's academic and professional understanding
 - [GPQA-COT](https://arxiv.org/abs/2311.12022) (A Graduate-Level Google-Proof Q&A Benchmark): A challenging benchmark of 448 multiple-choice questions written by domain experts in biology, physics, and chemistry.
 - [SimpleQA](https://openai.com/index/introducing-simpleqa/): Benchmark designed to access models to answer short, fact-seeking questions.
@@ -95,26 +97,31 @@ We have built-in functionality to run the supported open-benchmarks using llama-
 #### Spin up Llama Stack server
 
 Spin up llama stack server with 'open-benchmark' template
-```
-llama stack run llama_stack/distributions/open-benchmark/config.yaml
 
+```bash
+llama stack run llama_stack/distributions/open-benchmark/config.yaml
 ```
 
 #### Run eval CLI
+
 There are 3 necessary inputs to run a benchmark eval
+
 - `list of benchmark_ids`: The list of benchmark ids to run evaluation on
 - `model-id`: The model id to evaluate on
 - `output_dir`: Path to store the evaluate results
-```
+
+```bash
 llama-stack-client eval run-benchmark <benchmark_id_1> <benchmark_id_2> ... \
 --model_id <model id to evaluate on> \
 --output_dir <directory to store the evaluate results>
 ```
 
 You can run
-```
+
+```bash
 llama-stack-client eval run-benchmark help
 ```
+
 to see the description of all the flags that eval run-benchmark has
 
 In the output log, you can find the file path that has your evaluation results. Open that file and you can see you aggregate evaluation results over there.
@@ -133,16 +140,16 @@ client.datasets.register(
     purpose="evaluation",
     source={
         "type": "uri",
-        "uri": "huggingface://datasets/llamastack/evaluation_dataset"
+        "uri": "huggingface://datasets/llamastack/evaluation_dataset",
     },
-    dataset_id="my_eval_dataset"
+    dataset_id="my_eval_dataset",
 )
 
 # Run evaluation
 eval_result = client.eval.run_evaluation(
     dataset_id="my_eval_dataset",
     scoring_functions=["accuracy", "bleu"],
-    model_id="my_model"
+    model_id="my_model",
 )
 
 print(f"Evaluation completed: {eval_result}")
