@@ -23,3 +23,7 @@ MD059: false
 
 # Disable table column style - cosmetic pipe alignment, not auto-fixable, 300+ existing violations
 MD060: false
+
+# Allow bold text used as visual labels in generated conformance reports (conformance.mdx)
+# Bold method labels like **POST**, **GET** are intentional visual formatting, not heading substitutes
+MD036: false
